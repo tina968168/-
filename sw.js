@@ -8,8 +8,8 @@
  * 所以逻辑不是"到几点发"，而是"被叫醒的时候，看看今天欠不欠"。
  */
 
-const CACHE = 'letters-v1';
-const ASSETS = ['./', './index.html', './messages.js', './manifest.json'];
+const CACHE = 'letters-v2';
+const ASSETS = ['./', './index.html', './manifest.json'];
 
 self.addEventListener('install', e => {
   self.skipWaiting();
@@ -19,12 +19,22 @@ self.addEventListener('install', e => {
 });
 
 self.addEventListener('activate', e => {
-  e.waitUntil(self.clients.claim());
+  e.waitUntil((async () => {
+    const names = await caches.keys();
+    await Promise.all(names.filter(n => n.startsWith('letters-') && n !== CACHE)
+                           .map(n => caches.delete(n)));
+    await self.clients.claim();
+  })());
 });
 
 /* 离线也能打开 */
 self.addEventListener('fetch', e => {
   if(e.request.method !== 'GET') return;
+  // messages.js 永远拿最新的，不走缓存
+  if(e.request.url.includes('messages.js')){
+    e.respondWith(fetch(e.request, {cache:'no-store'}).catch(() => caches.match(e.request)));
+    return;
+  }
   e.respondWith(
     fetch(e.request)
       .then(res => {
@@ -55,13 +65,15 @@ async function loadMessages(){
   }
 }
 
+const parseKey = s => { const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); };
+
 function pickFor(dateKey, MESSAGES, START_DATE){
   if(!MESSAGES || !MESSAGES.length) return null;
   const exact = MESSAGES.find(m => m.date === dateKey);
   if(exact) return exact;
-  const start = new Date(START_DATE || MESSAGES[0].date || dateKey);
-  const today = new Date(dateKey);
-  const days = Math.floor((today - start) / 86400000);
+  const start = parseKey(START_DATE || dateKey);
+  const today = parseKey(dateKey);
+  const days = Math.round((today - start) / 86400000);
   const seq = MESSAGES.filter(m => !m.date);
   if(days < 0 || days >= seq.length) return null;
   return seq[days];
