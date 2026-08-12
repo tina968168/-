@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>通知测试</title>
+
+<style>
+  :root{
+    --bg:#0e1016; --card:#161a24; --line:#2a3040;
+    --text:#e4e0d6; --dim:#8a8f9c;
+    --ok:#7fc8a0; --bad:#d98a8a; --warn:#d9c48a;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--text);
+    font-family:system-ui,-apple-system,"Noto Sans SC",sans-serif;
+    padding:24px 18px 60px; line-height:1.7;
+    display:flex; flex-direction:column; align-items:center;
+  }
+  .wrap{width:100%; max-width:420px}
+  h1{font-size:19px; font-weight:600; margin-bottom:4px}
+  .sub{font-size:13px; color:var(--dim); margin-bottom:22px}
+  .row{
+    background:var(--card); border:1px solid var(--line);
+    border-radius:10px; padding:13px 15px; margin-bottom:9px;
+    display:flex; align-items:flex-start; gap:11px; font-size:13.5px;
+  }
+  .row b{font-weight:600; display:block; margin-bottom:1px}
+  .row span{color:var(--dim); font-size:12.5px}
+  .dot{width:9px;height:9px;border-radius:50%;flex:none;margin-top:7px;background:var(--dim)}
+  .dot.ok{background:var(--ok)} .dot.bad{background:var(--bad)} .dot.warn{background:var(--warn)}
+  button{
+    width:100%; margin-top:16px; padding:15px;
+    background:#252c3c; color:var(--text);
+    border:1px solid var(--line); border-radius:10px;
+    font-size:15px; font-family:inherit; cursor:pointer;
+  }
+  button:active{background:#2e3648}
+  .log{
+    margin-top:20px; font-size:12.5px; color:var(--dim);
+    border-top:1px solid var(--line); padding-top:14px;
+    white-space:pre-wrap; word-break:break-all;
+  }
+  .verdict{margin-top:18px; padding:14px 15px; border-radius:10px; font-size:13.5px; display:none}
+  .verdict.show{display:block}
+  .verdict.good{background:#16261e;border:1px solid #2d4a3a;color:#a8dcc0}
+  .verdict.fail{background:#2a1a1a;border:1px solid #4a2d2d;color:#e0a8a8}
+</style>
+
+<div class="wrap">
+  <h1>通知能力测试</h1>
+  <div class="sub">这一版走 Service Worker，安卓上必须这样。</div>
+
+  <div class="row"><span class="dot" id="d1"></span><div><b>Notification API</b><span id="s1">检测中…</span></div></div>
+  <div class="row"><span class="dot" id="d2"></span><div><b>Service Worker</b><span id="s2">检测中…</span></div></div>
+  <div class="row"><span class="dot" id="d3"></span><div><b>Push API</b><span id="s3">检测中…</span></div></div>
+  <div class="row"><span class="dot" id="d4"></span><div><b>安全上下文</b><span id="s4">检测中…</span></div></div>
+  <div class="row"><span class="dot" id="d5"></span><div><b>通知权限</b><span id="s5">检测中…</span></div></div>
+
+  <button id="btn">发一条通知</button>
+  <button id="btn2" style="margin-top:9px">发一条延迟 10 秒的通知</button>
+
+  <div class="verdict" id="verdict"></div>
+  <div class="log" id="log"></div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const lines = [];
+function log(s){ lines.push(s); $('log').textContent = lines.join('\n'); }
+function set(n, state, text){ $('d'+n).className='dot '+state; $('s'+n).textContent=text; }
+
+const hasNotif = 'Notification' in window;
+const hasSW    = 'serviceWorker' in navigator;
+const hasPush  = 'PushManager' in window;
+const secure   = window.isSecureContext;
+
+set(1, hasNotif?'ok':'bad', hasNotif?'支持':'不支持');
+set(2, hasSW?'ok':'bad',    hasSW?'支持':'不支持');
+set(3, hasPush?'ok':'warn', hasPush?'支持 — 定时推送有戏':'不支持');
+set(4, secure?'ok':'bad',   secure?'是':'否 — 必须用 https 打开');
+
+function refreshPerm(){
+  if(!hasNotif){ set(5,'bad','不可用'); return; }
+  const p = Notification.permission;
+  set(5, p==='granted'?'ok':p==='denied'?'bad':'warn',
+      p==='granted'?'已授权':p==='denied'?'已被拒绝':'尚未询问');
+}
+refreshPerm();
+log('UA: ' + navigator.userAgent);
+
+let reg = null;
+
+// 注册同源的真实 sw 文件
+async function ensureSW(){
+  if(reg) return reg;
+  reg = await navigator.serviceWorker.register('./sw.js');
+  await navigator.serviceWorker.ready;
+  log('Service Worker 注册成功');
+  return reg;
+}
+
+async function fire(delayMs, title, body){
+  const v = $('verdict');
+  v.className = 'verdict';
+
+  try{
+    const perm = await Notification.requestPermission();
+    refreshPerm();
+    log('权限: ' + perm);
+    if(perm !== 'granted'){
+      v.className='verdict show fail';
+      v.textContent='权限没给。去 Edge 设置 → 网站权限 → 通知，把这个站点改成允许。';
+      return;
+    }
+
+    const r = await ensureSW();
+
+    if(delayMs > 0){
+      v.className='verdict show good';
+      v.textContent = '好了，' + (delayMs/1000) + ' 秒后发。现在马上把浏览器切到后台，或者直接锁屏 —— 我们要看的就是它能不能在你没看着的时候弹出来。';
+      setTimeout(async () => {
+        await r.showNotification(title, { body, tag:'t'+Date.now(), requireInteraction:false });
+        log('延迟通知已发出');
+      }, delayMs);
+    } else {
+      await r.showNotification(title, { body, tag:'t'+Date.now() });
+      log('通知已发出');
+      v.className='verdict show good';
+      v.innerHTML='已经发出去了。<br><br>下拉通知栏看看：<br>· 有 → 这一关过了<br>· 没有 → 手机设置里找到 Edge，看通知权限是不是被系统关了';
+    }
+  }catch(err){
+    log('出错: ' + err.name + ' — ' + err.message);
+    const v2 = $('verdict');
+    v2.className='verdict show fail';
+    v2.textContent='出错了：' + err.message;
+  }
+}
+
+$('btn').addEventListener('click',  () => fire(0,     '测试成功', '看到这条，说明通知能弹。'));
+$('btn2').addEventListener('click', () => fire(10000, '十秒后的我', '这条是在你没看着页面的时候弹出来的。'));
+</script>
