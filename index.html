@@ -5,7 +5,7 @@
 <title>信</title>
 
 <link rel="manifest" href="./manifest.json">
-<meta name="theme-color" content="#050a12">
+<meta name="theme-color" content="#0a1826">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,300;1,300&family=Barlow+Condensed:wght@100;200&family=Noto+Serif+SC:wght@200;300&display=swap" rel="stylesheet">
@@ -13,7 +13,7 @@
 <style>
   :root{
     /* 全部取自参考图的实际采样值 */
-    --void:#050a12;        /* 远离带的天 */
+    --void:#0a1826;        /* 天的底，比参考图抬了一档 */
     --blue:#0d3955;        /* 蓝区 */
     --band:#3a5068;        /* 带的主体 */
     --warm:#59677a;        /* 带里那点暖褐 */
@@ -26,63 +26,72 @@
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   html,body{min-height:100%}
   body{
+    position:relative;
     background:var(--void); color:var(--bone);
     font-family:'Noto Serif SC',serif;
     display:flex; justify-content:center;
     overflow-x:hidden; -webkit-font-smoothing:antialiased;
   }
 
-  /* ── 天：一层大范围的蓝，左下最亮，右上最暗 ── */
-  .sky{position:fixed; inset:-20%; z-index:0; pointer-events:none}
-  .sky i{position:absolute; inset:0; display:block; mix-blend-mode:screen}
+  /* ── 天 ── */
+  .sky{
+    position:absolute; top:0; left:0; right:0; min-height:100%;
+    height:100%; z-index:0; pointer-events:none; overflow:hidden;
+  }
+  .sky i{position:absolute; inset:-14%; display:block; mix-blend-mode:screen}
 
+  /* 大范围的蓝：铺开，别让四角塌成黑 */
   .sky i:nth-child(1){
     background:
-      radial-gradient(ellipse 92% 76% at 18% 88%, rgba(13,57,85,.86), transparent 72%),
-      radial-gradient(ellipse 70% 58% at 4% 34%, rgba(8,38,60,.62), transparent 74%);
-    filter:blur(28px);
+      radial-gradient(ellipse 110% 68% at 16% 78%, rgba(22,74,108,.9), transparent 76%),
+      radial-gradient(ellipse 90% 60% at 84% 26%, rgba(16,52,80,.66), transparent 78%),
+      radial-gradient(ellipse 130% 90% at 50% 50%, rgba(14,44,70,.5), transparent 82%);
+    filter:blur(30px);
     animation:sky1 150s ease-in-out infinite alternate;
   }
-  /* 星云带：斜穿，蓝灰为主，中段有一点暖 */
+  /* 星云带 */
   .sky i:nth-child(2){
     background:linear-gradient(64deg,
-      transparent 20%,
-      rgba(46,62,82,.50) 34%,
-      rgba(58,80,104,.62) 44%,
-      rgba(89,103,122,.58) 52%,
-      rgba(52,72,96,.56) 60%,
-      rgba(34,50,70,.40) 72%,
-      transparent 88%);
+      transparent 16%,
+      rgba(52,72,96,.5) 31%,
+      rgba(66,90,116,.62) 42%,
+      rgba(98,112,132,.6) 51%,
+      rgba(60,82,108,.56) 60%,
+      rgba(40,58,80,.42) 73%,
+      transparent 90%);
     filter:blur(22px);
     animation:sky2 118s ease-in-out infinite alternate;
   }
-  /* 带里的絮状浓块，让它不是一条直渐变 */
+  /* 带里的絮状浓块 */
   .sky i:nth-child(3){
     background:
-      radial-gradient(ellipse 22% 15% at 40% 66%, rgba(96,108,126,.50), transparent 64%),
-      radial-gradient(ellipse 18% 12% at 52% 52%, rgba(74,90,112,.46), transparent 66%),
-      radial-gradient(ellipse 20% 13% at 63% 36%, rgba(60,80,104,.40), transparent 68%),
-      radial-gradient(ellipse 15% 10% at 33% 78%, rgba(84,96,114,.36), transparent 66%);
+      radial-gradient(ellipse 22% 13% at 40% 66%, rgba(106,118,136,.52), transparent 64%),
+      radial-gradient(ellipse 18% 10% at 52% 52%, rgba(84,100,122,.48), transparent 66%),
+      radial-gradient(ellipse 20% 11% at 63% 36%, rgba(68,90,114,.42), transparent 68%),
+      radial-gradient(ellipse 15% 9% at 33% 78%, rgba(94,106,124,.38), transparent 66%);
     filter:blur(19px);
     animation:sky3 96s ease-in-out infinite alternate;
   }
-  /* 带里的暗尘：把絮状咬出缺口 */
+  /* 暗尘：只咬带里面，别扩散 */
   .sky i:nth-child(4){
     mix-blend-mode:multiply;
     background:
-      radial-gradient(ellipse 13% 9% at 47% 60%, rgba(5,10,18,.72), transparent 62%),
-      radial-gradient(ellipse 10% 7% at 57% 44%, rgba(5,10,18,.66), transparent 64%),
-      radial-gradient(ellipse 11% 8% at 37% 72%, rgba(5,10,18,.60), transparent 64%);
+      radial-gradient(ellipse 11% 7% at 47% 60%, rgba(10,24,38,.6), transparent 62%),
+      radial-gradient(ellipse 9% 6% at 57% 44%, rgba(10,24,38,.54), transparent 64%),
+      radial-gradient(ellipse 9% 6% at 37% 72%, rgba(10,24,38,.5), transparent 64%);
     filter:blur(15px);
     animation:sky4 104s ease-in-out infinite alternate;
   }
-  @keyframes sky1{to{transform:translate(2%,-2%) scale(1.05)}}
-  @keyframes sky2{to{transform:translate(-3%,2%) scale(1.06)}}
-  @keyframes sky3{to{transform:translate(3%,-2%) scale(1.08)}}
-  @keyframes sky4{to{transform:translate(-2%,2%) scale(1.07)}}
+  @keyframes sky1{to{transform:translate(2%,-2%) scale(1.04)}}
+  @keyframes sky2{to{transform:translate(-3%,2%) scale(1.05)}}
+  @keyframes sky3{to{transform:translate(3%,-2%) scale(1.06)}}
+  @keyframes sky4{to{transform:translate(-2%,2%) scale(1.05)}}
 
-  /* ── 星：多、细、大部分很暗 ── */
-  .stars{position:fixed; inset:0; z-index:1; pointer-events:none}
+  /* ── 星：跟着页面一起滚 ── */
+  .stars{
+    position:absolute; top:0; left:0; right:0; height:100%;
+    z-index:1; pointer-events:none; overflow:hidden;
+  }
   .stars i{
     position:absolute; display:block; border-radius:50%;
     background:var(--star);
@@ -90,8 +99,12 @@
   .stars i.tw{animation:tw linear infinite}
   @keyframes tw{0%,100%{opacity:var(--o)} 50%{opacity:calc(var(--o) * 2.6)}}
 
-  .vig{position:fixed; inset:0; z-index:2; pointer-events:none;
-    background:radial-gradient(ellipse 96% 82% at 42% 56%, transparent 56%, rgba(2,4,8,.72) 100%)}
+  /* 暗角：只收边缘一点点，不再把中间以外全压黑 */
+  .vig{
+    position:absolute; top:0; left:0; right:0; height:100%;
+    z-index:2; pointer-events:none;
+    background:radial-gradient(ellipse 120% 92% at 44% 54%, transparent 68%, rgba(4,12,22,.42) 100%);
+  }
 
   .frame{
     position:relative; z-index:4;
@@ -345,26 +358,56 @@ const $ = id => document.getElementById(id);
   };
 
   // 带里：密集的细星
-  for(let i = 0; i < 230; i++){
+  for(let i = 0; i < 300; i++){
     const t = rnd();
-    const spread = 15 + rnd() * 12;
+    const spread = 17 + rnd() * 13;
     const x = bandX(t) + (rnd() - 0.5) * spread;
     const y = bandY(t) + (rnd() - 0.5) * spread * 0.5;
-    const big = rnd() > 0.93;
+    const big = rnd() > 0.92;
     put(x, y,
-        big ? (1.1 + rnd()*0.7).toFixed(2) : (0.5 + rnd()*0.5).toFixed(2),
-        big ? (0.34 + rnd()*0.2).toFixed(2) : (0.1 + rnd()*0.22).toFixed(2),
-        rnd() > 0.78);
+        big ? (1.2 + rnd()*0.8).toFixed(2) : (0.55 + rnd()*0.55).toFixed(2),
+        big ? (0.5 + rnd()*0.26).toFixed(2) : (0.2 + rnd()*0.3).toFixed(2),
+        rnd() > 0.76);
   }
-  // 带外：稀一些，但不能没有
-  for(let i = 0; i < 150; i++){
-    const big = rnd() > 0.95;
+  // 带外：稀一些，但要够亮，别让暗区发死
+  for(let i = 0; i < 230; i++){
+    const big = rnd() > 0.94;
     put(rnd()*100, rnd()*100,
-        big ? (1.0 + rnd()*0.6).toFixed(2) : (0.45 + rnd()*0.45).toFixed(2),
-        big ? (0.3 + rnd()*0.18).toFixed(2) : (0.07 + rnd()*0.16).toFixed(2),
-        rnd() > 0.82);
+        big ? (1.1 + rnd()*0.7).toFixed(2) : (0.5 + rnd()*0.5).toFixed(2),
+        big ? (0.44 + rnd()*0.24).toFixed(2) : (0.15 + rnd()*0.26).toFixed(2),
+        rnd() > 0.8);
   }
   $('stars').innerHTML = html;
+
+  // 页面比一屏长的时候，把星补到下面去
+  function fillDown(){
+    const box = $('stars');
+    const h = document.body.scrollHeight;
+    const vh = window.innerHeight;
+    if(h <= vh * 1.15) return;
+    const screens = Math.ceil(h / vh);
+    if(box.dataset.screens === String(screens)) return;
+    box.dataset.screens = screens;
+    let extra = '';
+    for(let sIdx = 1; sIdx < screens; sIdx++){
+      for(let i = 0; i < 120; i++){
+        const big = rnd() > 0.94;
+        const size = big ? (1.1 + rnd()*0.7).toFixed(2) : (0.5 + rnd()*0.5).toFixed(2);
+        const op = big ? (0.4 + rnd()*0.22).toFixed(2) : (0.14 + rnd()*0.24).toFixed(2);
+        const topPx = (sIdx * vh + rnd() * vh).toFixed(0);
+        const dur = (6 + rnd()*11).toFixed(1);
+        const delay = (rnd()*16).toFixed(1);
+        const tw = rnd() > 0.8;
+        extra += `<i class="${tw?'tw':''}" style="left:${(rnd()*100).toFixed(2)}%;top:${topPx}px;` +
+                 `width:${size}px;height:${size}px;--o:${op};opacity:${op};` +
+                 (tw ? `animation-duration:${dur}s;animation-delay:${delay}s` : '') + `"></i>`;
+      }
+    }
+    box.insertAdjacentHTML('beforeend', extra);
+  }
+  window.addEventListener('load', fillDown);
+  window.addEventListener('resize', fillDown);
+  window.__fillStars = fillDown;
 
   // 抽屉里几颗，让它跟外面是同一片天
   let d = '';
@@ -543,7 +586,11 @@ function render(){
   }
 }
 
-$('more').addEventListener('click', () => { pastExpanded = !pastExpanded; render(); });
+$('more').addEventListener('click', () => {
+  pastExpanded = !pastExpanded;
+  render();
+  if(window.__fillStars) setTimeout(window.__fillStars, 50);
+});
 
 /* ── Service Worker ── */
 let reg = null;
@@ -760,6 +807,7 @@ $('doExport').addEventListener('click', async () => {
 
 render();
 boot();
+if(window.__fillStars) setTimeout(window.__fillStars, 60);
 
 document.addEventListener('visibilitychange', () => { if(!document.hidden) render(); });
 setInterval(render, 60000);
