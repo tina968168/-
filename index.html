@@ -5,19 +5,23 @@
 <title>信</title>
 
 <link rel="manifest" href="./manifest.json">
-<meta name="theme-color" content="#0b0d13">
+<meta name="theme-color" content="#050a12">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,300;1,300&family=Barlow+Condensed:wght@100;200&family=Noto+Serif+SC:wght@200;300&display=swap" rel="stylesheet">
 
 <style>
   :root{
-    --void:#0b0d13;
-    --bone:#ddd8cc;
-    --ash:#8f8b82;
-    --whisper:#5b5a5e;
-    --pale:#aab3b8;
-    --line:rgba(170,179,184,.15);
+    /* 全部取自参考图的实际采样值 */
+    --void:#050a12;        /* 远离带的天 */
+    --blue:#0d3955;        /* 蓝区 */
+    --band:#3a5068;        /* 带的主体 */
+    --warm:#59677a;        /* 带里那点暖褐 */
+    --bone:#e6ecf3;
+    --ash:#93a2b2;
+    --whisper:#63717f;
+    --star:#f2f7fb;
+    --line:rgba(147,162,178,.16);
   }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   html,body{min-height:100%}
@@ -28,28 +32,75 @@
     overflow-x:hidden; -webkit-font-smoothing:antialiased;
   }
 
-  .fog{position:fixed; inset:-15%; z-index:0; pointer-events:none}
-  .fog i{position:absolute; inset:0; display:block; mix-blend-mode:screen}
-  .fog i:nth-child(1){background:radial-gradient(ellipse 46% 32% at 24% 18%, rgba(27,29,58,.9), transparent 68%); animation:d1 34s ease-in-out infinite alternate}
-  .fog i:nth-child(2){background:radial-gradient(ellipse 40% 30% at 76% 34%, rgba(46,18,32,.8), transparent 70%); animation:d2 41s ease-in-out infinite alternate}
-  .fog i:nth-child(3){background:radial-gradient(ellipse 44% 34% at 56% 80%, rgba(15,42,42,.65), transparent 72%); animation:d3 47s ease-in-out infinite alternate}
-  .fog i:nth-child(4){background:radial-gradient(ellipse 34% 26% at 34% 56%, rgba(42,28,62,.75), transparent 72%); animation:d4 38s ease-in-out infinite alternate}
-  @keyframes d1{to{transform:translate(6%,4%) scale(1.16)}}
-  @keyframes d2{to{transform:translate(-7%,5%) scale(1.2)}}
-  @keyframes d3{to{transform:translate(4%,-6%) scale(1.14)}}
-  @keyframes d4{to{transform:translate(-5%,-4%) scale(1.22)}}
-  .vig{position:fixed; inset:0; z-index:1; pointer-events:none;
-    background:radial-gradient(ellipse 80% 64% at 50% 44%, transparent 38%, rgba(11,13,19,.94) 100%)}
-  .grain{position:fixed; inset:0; z-index:2; pointer-events:none; opacity:.05;
-    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='4'/%3E%3C/filter%3E%3Crect width='150' height='150' filter='url(%23n)'/%3E%3C/svg%3E")}
+  /* ── 天：一层大范围的蓝，左下最亮，右上最暗 ── */
+  .sky{position:fixed; inset:-20%; z-index:0; pointer-events:none}
+  .sky i{position:absolute; inset:0; display:block; mix-blend-mode:screen}
+
+  .sky i:nth-child(1){
+    background:
+      radial-gradient(ellipse 92% 76% at 18% 88%, rgba(13,57,85,.86), transparent 72%),
+      radial-gradient(ellipse 70% 58% at 4% 34%, rgba(8,38,60,.62), transparent 74%);
+    filter:blur(28px);
+    animation:sky1 150s ease-in-out infinite alternate;
+  }
+  /* 星云带：斜穿，蓝灰为主，中段有一点暖 */
+  .sky i:nth-child(2){
+    background:linear-gradient(64deg,
+      transparent 20%,
+      rgba(46,62,82,.50) 34%,
+      rgba(58,80,104,.62) 44%,
+      rgba(89,103,122,.58) 52%,
+      rgba(52,72,96,.56) 60%,
+      rgba(34,50,70,.40) 72%,
+      transparent 88%);
+    filter:blur(22px);
+    animation:sky2 118s ease-in-out infinite alternate;
+  }
+  /* 带里的絮状浓块，让它不是一条直渐变 */
+  .sky i:nth-child(3){
+    background:
+      radial-gradient(ellipse 22% 15% at 40% 66%, rgba(96,108,126,.50), transparent 64%),
+      radial-gradient(ellipse 18% 12% at 52% 52%, rgba(74,90,112,.46), transparent 66%),
+      radial-gradient(ellipse 20% 13% at 63% 36%, rgba(60,80,104,.40), transparent 68%),
+      radial-gradient(ellipse 15% 10% at 33% 78%, rgba(84,96,114,.36), transparent 66%);
+    filter:blur(19px);
+    animation:sky3 96s ease-in-out infinite alternate;
+  }
+  /* 带里的暗尘：把絮状咬出缺口 */
+  .sky i:nth-child(4){
+    mix-blend-mode:multiply;
+    background:
+      radial-gradient(ellipse 13% 9% at 47% 60%, rgba(5,10,18,.72), transparent 62%),
+      radial-gradient(ellipse 10% 7% at 57% 44%, rgba(5,10,18,.66), transparent 64%),
+      radial-gradient(ellipse 11% 8% at 37% 72%, rgba(5,10,18,.60), transparent 64%);
+    filter:blur(15px);
+    animation:sky4 104s ease-in-out infinite alternate;
+  }
+  @keyframes sky1{to{transform:translate(2%,-2%) scale(1.05)}}
+  @keyframes sky2{to{transform:translate(-3%,2%) scale(1.06)}}
+  @keyframes sky3{to{transform:translate(3%,-2%) scale(1.08)}}
+  @keyframes sky4{to{transform:translate(-2%,2%) scale(1.07)}}
+
+  /* ── 星：多、细、大部分很暗 ── */
+  .stars{position:fixed; inset:0; z-index:1; pointer-events:none}
+  .stars i{
+    position:absolute; display:block; border-radius:50%;
+    background:var(--star);
+  }
+  .stars i.tw{animation:tw linear infinite}
+  @keyframes tw{0%,100%{opacity:var(--o)} 50%{opacity:calc(var(--o) * 2.6)}}
+
+  .vig{position:fixed; inset:0; z-index:2; pointer-events:none;
+    background:radial-gradient(ellipse 96% 82% at 42% 56%, transparent 56%, rgba(2,4,8,.72) 100%)}
 
   .frame{
-    position:relative; z-index:3;
+    position:relative; z-index:4;
     width:100%; max-width:440px; min-height:100vh;
     padding:calc(30px + env(safe-area-inset-top)) 26px calc(50px + env(safe-area-inset-bottom));
     display:flex; flex-direction:column;
   }
 
+  /* ── 眉标 ── */
   .mast{display:flex; align-items:baseline; margin-bottom:4px}
   .mark{
     font-family:'Barlow Condensed',sans-serif; font-weight:100;
@@ -60,27 +111,36 @@
     font-family:'Cormorant',serif; font-style:italic; font-weight:300;
     font-size:12px; letter-spacing:.14em; color:var(--whisper); margin-left:auto;
   }
+  .cog{
+    margin-left:15px; background:none; border:0; padding:4px 0 4px 4px;
+    width:auto; cursor:pointer; line-height:0;
+  }
+  .cog svg{width:14px; height:14px; opacity:.38; transition:opacity .3s}
+  .cog:active svg{opacity:.8}
 
-  /* 今天 */
+  /* ── 今天 ── */
   .today{margin-top:44px}
   .letter{
-    padding:22px 0;
+    padding:22px 0; position:relative;
     opacity:0; transform:translateY(10px);
     animation:rise .9s cubic-bezier(.2,.8,.25,1) forwards;
   }
   .letter+.letter{border-top:1px solid var(--line)}
   @keyframes rise{to{opacity:1; transform:none}}
 
-  .meta{display:flex; align-items:baseline; gap:11px; margin-bottom:11px}
+  .meta{display:flex; align-items:center; gap:11px; margin-bottom:12px}
   .slot{
     font-family:'Noto Serif SC',serif; font-weight:200;
-    font-size:11px; letter-spacing:.4em; color:var(--whisper);
-    border:1px solid var(--line); border-radius:1px;
-    padding:2px 3px 2px 7px; line-height:1.6;
+    font-size:11.5px; letter-spacing:.42em; color:var(--ash);
+    display:inline-flex; align-items:center; gap:9px;
+  }
+  .slot::before{
+    content:''; width:3.5px; height:3.5px; border-radius:50%; flex:none;
+    background:var(--star); box-shadow:0 0 7px rgba(242,247,251,.6);
   }
   .at{
     font-family:'Cormorant',serif; font-style:italic; font-weight:300;
-    font-size:16px; letter-spacing:.1em; color:#5d5a6c;
+    font-size:16px; letter-spacing:.1em; color:#7d8b9b;
   }
   .text{
     font-family:'Noto Serif SC',serif; font-weight:300;
@@ -88,15 +148,15 @@
     color:var(--bone); white-space:pre-wrap;
   }
 
-  /* 还没到的 */
   .pending{
     padding:20px 0; border-top:1px solid var(--line);
-    display:flex; align-items:baseline; gap:11px;
+    display:flex; align-items:center; gap:12px;
   }
-  .pending .slot{opacity:.5}
+  .pending .slot{opacity:.42}
+  .pending .slot::before{box-shadow:none; background:rgba(147,162,178,.5)}
   .pending .hint{
     font-family:'Noto Serif SC',serif; font-weight:200;
-    font-size:12.5px; letter-spacing:.08em; color:#43454d;
+    font-size:12.5px; letter-spacing:.08em; color:#5a6673;
   }
 
   .empty{
@@ -104,8 +164,30 @@
     font-size:14px; line-height:2.2; color:var(--ash); padding:10px 0 0;
   }
 
-  /* 往前 */
-  .past{margin-top:52px; flex:1}
+  /* ── 控制区 ── */
+  .controls{margin-top:46px; padding-top:22px; border-top:1px solid var(--line)}
+  .status{
+    font-family:'Barlow Condensed',sans-serif; font-weight:100;
+    font-size:10.5px; letter-spacing:.3em; text-transform:uppercase;
+    color:var(--whisper); margin-bottom:14px; text-indent:.3em;
+  }
+  button{
+    width:100%; padding:13px;
+    background:transparent; color:var(--ash);
+    border:1px solid var(--line); border-radius:1px;
+    font-family:'Noto Serif SC',serif; font-weight:200;
+    font-size:13px; letter-spacing:.24em; text-indent:.24em;
+    cursor:pointer; transition:border-color .3s, color .3s;
+  }
+  button:active{border-color:rgba(147,162,178,.42); color:var(--bone)}
+  button+button{margin-top:8px}
+  .tiny{
+    margin-top:14px; font-family:'Noto Serif SC',serif; font-weight:200;
+    font-size:11.5px; line-height:1.9; color:#5e6a78;
+  }
+
+  /* ── 往前 ── */
+  .past{margin-top:48px; flex:1}
   .past-label{
     font-family:'Barlow Condensed',sans-serif; font-weight:100;
     font-size:10px; letter-spacing:.56em; text-transform:uppercase;
@@ -115,148 +197,124 @@
   .day:last-child{border-bottom:0}
   .day .d{
     font-family:'Cormorant',serif; font-style:italic; font-weight:300;
-    font-size:13px; letter-spacing:.12em; color:#4c4a5c; margin-bottom:9px;
+    font-size:13px; letter-spacing:.12em; color:#6d7b8a; margin-bottom:10px;
   }
-  .day .one{margin:7px 0}
-  .day .one .t{
-    font-family:'Noto Serif SC',serif; font-weight:200;
-    font-size:13px; line-height:2; letter-spacing:.05em; color:#9d998f;
-    white-space:pre-wrap;
-  }
+  .day .one{margin:8px 0; display:flex; gap:11px; align-items:baseline}
   .day .one .w{
     font-family:'Cormorant',serif; font-style:italic; font-size:11.5px;
-    color:#43454d; letter-spacing:.1em; margin-right:8px;
+    color:#5a6673; letter-spacing:.1em; flex:none; min-width:34px;
+  }
+  .day .one .t{
+    font-family:'Noto Serif SC',serif; font-weight:200;
+    font-size:13px; line-height:2; letter-spacing:.05em; color:#a4b1bf;
+    white-space:pre-wrap;
   }
   .none{font-family:'Noto Serif SC',serif; font-weight:200; font-size:13px; color:var(--whisper)}
-
-  .foot{margin-top:44px; padding-top:20px; border-top:1px solid var(--line)}
-  .status{
-    font-family:'Barlow Condensed',sans-serif; font-weight:100;
-    font-size:10.5px; letter-spacing:.3em; text-transform:uppercase;
-    color:var(--whisper); margin-bottom:12px; text-indent:.3em;
-  }
-  button{
-    width:100%; padding:13px;
-    background:transparent; color:var(--ash);
-    border:1px solid var(--line); border-radius:2px;
-    font-family:'Noto Serif SC',serif; font-weight:200;
-    font-size:13px; letter-spacing:.24em; text-indent:.24em;
-    cursor:pointer; transition:border-color .3s, color .3s;
-  }
-  button:active{border-color:rgba(170,179,184,.4); color:var(--bone)}
-  button+button{margin-top:8px}
-  .tiny{
-    margin-top:14px; font-family:'Noto Serif SC',serif; font-weight:200;
-    font-size:11.5px; line-height:1.9; color:#4a4d55;
+  .more{
+    margin-top:18px; color:var(--whisper);
+    font-size:12px; letter-spacing:.3em; text-indent:.3em;
+    border-style:dashed;
   }
 
-  /* 右上角入口 */
-  .cog{
-    margin-left:14px; background:none; border:0; padding:4px 0 4px 6px;
-    width:auto; cursor:pointer; line-height:0;
-  }
-  .cog svg{width:15px; height:15px; opacity:.42; transition:opacity .3s}
-  .cog:active svg{opacity:.85}
-
-  /* 抽屉 */
+  /* ── 抽屉：跟外面同一片天 ── */
   .sheet{
     position:fixed; inset:0; z-index:20;
-    background:rgba(6,7,11,.86);
-    backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+    background:rgba(2,5,10,.8);
+    backdrop-filter:blur(7px); -webkit-backdrop-filter:blur(7px);
     display:flex; align-items:flex-end; justify-content:center;
     opacity:0; pointer-events:none; transition:opacity .35s ease;
   }
   .sheet.open{opacity:1; pointer-events:auto}
   .panel{
-    width:100%; max-width:440px;
-    background:#0e1119; border-top:1px solid var(--line);
+    position:relative; width:100%; max-width:440px;
+    background:linear-gradient(168deg, rgba(13,40,62,.94), rgba(5,10,18,.97));
+    border-top:1px solid rgba(147,162,178,.22);
     padding:26px 26px calc(30px + env(safe-area-inset-bottom));
-    transform:translateY(14px); transition:transform .35s cubic-bezier(.2,.8,.25,1);
+    transform:translateY(16px); transition:transform .35s cubic-bezier(.2,.8,.25,1);
     max-height:88vh; overflow-y:auto;
   }
   .sheet.open .panel{transform:none}
+  /* 抽屉自己的几颗星 */
+  .panel .dust{position:absolute; inset:0; pointer-events:none; overflow:hidden}
+  .panel .dust i{position:absolute; border-radius:50%; background:var(--star)}
+  .panel > *:not(.dust){position:relative; z-index:1}
+
   .panel h3{
     font-family:'Barlow Condensed',sans-serif; font-weight:100;
     font-size:10px; letter-spacing:.56em; text-transform:uppercase;
-    color:var(--whisper); margin-bottom:20px;
+    color:var(--whisper); margin-bottom:8px;
   }
-  .panel textarea{
-    width:100%; min-height:130px; resize:vertical;
-    background:#080a0f; color:#b8b4aa;
-    border:1px solid var(--line); border-radius:2px;
-    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
-    font-size:11.5px; line-height:1.75; padding:12px;
-    margin-bottom:10px;
-  }
-  .panel textarea:focus{outline:0; border-color:rgba(170,179,184,.34)}
-  .panel textarea::placeholder{color:#3d4048}
-  .panel .desc{
-    font-family:'Noto Serif SC',serif; font-weight:200;
-    font-size:12px; line-height:1.95; color:#5e6169; margin-bottom:12px;
-  }
-  .panel .divider{height:1px; background:var(--line); margin:24px 0}
-  .msg{
-    font-family:'Noto Serif SC',serif; font-weight:200;
-    font-size:12px; line-height:1.9; margin-top:10px; min-height:19px;
-  }
-  .msg.ok{color:#8fc4a6}
-  .msg.bad{color:#c99}
   .src{
     font-family:'Noto Serif SC',serif; font-weight:200;
-    font-size:11.5px; color:#4a4d55; margin-bottom:18px;
+    font-size:11.5px; color:#6b7787; margin-bottom:18px;
   }
+  .panel textarea{
+    width:100%; min-height:132px; resize:vertical;
+    background:rgba(2,6,12,.6); color:#c6d2de;
+    border:1px solid var(--line); border-radius:1px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+    font-size:11.5px; line-height:1.75; padding:12px;
+    margin-bottom:12px;
+  }
+  .panel textarea:focus{outline:0; border-color:rgba(147,162,178,.36)}
+  .panel textarea::placeholder{color:#454f5d}
+  .panel .divider{height:1px; background:var(--line); margin:22px 0}
+  .msg{
+    font-family:'Noto Serif SC',serif; font-weight:200;
+    font-size:12px; line-height:1.9; margin-top:12px; min-height:19px;
+  }
+  .msg.ok{color:#8fb8c6}
+  .msg.bad{color:#c09098}
+
   @media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
 </style>
 
-<div class="fog"><i></i><i></i><i></i><i></i></div>
+<div class="sky"><i></i><i></i><i></i><i></i></div>
+<div class="stars" id="stars"></div>
 <div class="vig"></div>
-<div class="grain"></div>
 
 <div class="frame">
 
   <header class="mast">
     <span class="mark">Une lettre</span>
     <span class="today-date" id="todayDate"></span>
-    <button class="cog" id="cog" aria-label="设置">
-      <svg viewBox="0 0 16 16" fill="none" stroke="#aab3b8" stroke-width="1">
-        <circle cx="8" cy="8" r="2.3"/>
-        <path d="M8 1.2v2.1M8 12.7v2.1M14.8 8h-2.1M3.3 8H1.2M12.8 3.2l-1.5 1.5M4.7 11.3l-1.5 1.5M12.8 12.8l-1.5-1.5M4.7 4.7L3.2 3.2"/>
+    <button class="cog" id="cog" aria-label="内容">
+      <svg viewBox="0 0 16 16" fill="none" stroke="#93a2b2" stroke-width=".9">
+        <circle cx="8" cy="8" r="2.2"/>
+        <path d="M8 1.4v2M8 12.6v2M14.6 8h-2M3.4 8h-2M12.7 3.3l-1.4 1.4M4.7 11.3l-1.4 1.4M12.7 12.7l-1.4-1.4M4.7 4.7L3.3 3.3"/>
       </svg>
     </button>
   </header>
 
   <section class="today" id="today"></section>
 
-  <section class="past">
-    <div class="past-label">往前</div>
-    <div id="pastList"><div class="none">还没有。</div></div>
-  </section>
-
-  <footer class="foot">
+  <section class="controls">
     <div class="status" id="status">检查中</div>
     <button id="enable">开启提醒</button>
     <button id="test">现在试一条</button>
     <div class="tiny" id="tiny"></div>
-  </footer>
+  </section>
+
+  <section class="past">
+    <div class="past-label">往前</div>
+    <div id="pastList"><div class="none">还没有。</div></div>
+    <button id="more" class="more" style="display:none">更早的</button>
+  </section>
 
 </div>
 
 <div class="sheet" id="sheet">
   <div class="panel">
+    <div class="dust" id="dust"></div>
     <h3>内容</h3>
     <div class="src" id="srcLine"></div>
 
-    <div class="desc">把一段内容粘进来。格式跟 messages.js 一样，存在这台设备上，不会传到任何地方。</div>
-    <textarea id="importBox" placeholder='{ "START_DATE": "2026-08-12", "SLOTS": {...}, "MESSAGES": {...} }'></textarea>
-    <button id="doImport">导入</button>
-    <div class="msg" id="importMsg"></div>
+    <textarea id="box" placeholder="把内容粘在这里。&#10;JSON 或者 messages.js 那种写法都行。"></textarea>
 
-    <div class="divider"></div>
-
-    <button id="doExport">导出当前内容</button>
-    <button id="doExportSeen">导出读过的记录</button>
-    <button id="doReset">恢复默认</button>
-    <div class="msg" id="opMsg"></div>
+    <button id="doAppend">追加 · 接在现有内容后面</button>
+    <button id="doImport">导入 · 整份换掉</button>
+    <button id="doExport">导出 · 复制到剪贴板</button>
+    <div class="msg" id="msg"></div>
 
     <div class="divider"></div>
     <button id="closeSheet">关上</button>
@@ -267,89 +325,115 @@
 <script>
 const $ = id => document.getElementById(id);
 
-/* ── 一律按福州时间（UTC+8）算，跟设备时区无关 ── */
-const TZ_OFFSET = 8 * 60; // 分钟
+/* ── 星空：多、细、暗。沿着带更密 ── */
+(function(){
+  let seed = 20260812;
+  const rnd = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+
+  // 带的走向：左上 → 右下偏，跟 CSS 里 64deg 那条对齐
+  const bandX = t => 20 + t * 62;
+  const bandY = t => 6 + t * 88;
+
+  let html = '';
+  const put = (x, y, size, opacity, twinkle) => {
+    if(x < -1 || x > 101 || y < -1 || y > 101) return;
+    const dur = (6 + rnd() * 11).toFixed(1);
+    const delay = (rnd() * 16).toFixed(1);
+    html += `<i class="${twinkle ? 'tw' : ''}" style="left:${x.toFixed(2)}%;top:${y.toFixed(2)}%;` +
+            `width:${size}px;height:${size}px;--o:${opacity};opacity:${opacity};` +
+            (twinkle ? `animation-duration:${dur}s;animation-delay:${delay}s` : '') + `"></i>`;
+  };
+
+  // 带里：密集的细星
+  for(let i = 0; i < 230; i++){
+    const t = rnd();
+    const spread = 15 + rnd() * 12;
+    const x = bandX(t) + (rnd() - 0.5) * spread;
+    const y = bandY(t) + (rnd() - 0.5) * spread * 0.5;
+    const big = rnd() > 0.93;
+    put(x, y,
+        big ? (1.1 + rnd()*0.7).toFixed(2) : (0.5 + rnd()*0.5).toFixed(2),
+        big ? (0.34 + rnd()*0.2).toFixed(2) : (0.1 + rnd()*0.22).toFixed(2),
+        rnd() > 0.78);
+  }
+  // 带外：稀一些，但不能没有
+  for(let i = 0; i < 150; i++){
+    const big = rnd() > 0.95;
+    put(rnd()*100, rnd()*100,
+        big ? (1.0 + rnd()*0.6).toFixed(2) : (0.45 + rnd()*0.45).toFixed(2),
+        big ? (0.3 + rnd()*0.18).toFixed(2) : (0.07 + rnd()*0.16).toFixed(2),
+        rnd() > 0.82);
+  }
+  $('stars').innerHTML = html;
+
+  // 抽屉里几颗，让它跟外面是同一片天
+  let d = '';
+  for(let i = 0; i < 26; i++){
+    const s2 = (0.5 + rnd()*0.7).toFixed(2);
+    d += `<i style="left:${(rnd()*100).toFixed(1)}%;top:${(rnd()*100).toFixed(1)}%;` +
+         `width:${s2}px;height:${s2}px;opacity:${(0.08+rnd()*0.2).toFixed(2)}"></i>`;
+  }
+  $('dust').innerHTML = d;
+})();
+
+/* ── 时间：一律按福州（UTC+8），跟设备时区无关 ── */
+const TZ_OFFSET = 8 * 60;
 function fzNow(){
   const now = new Date();
-  // 先转成 UTC，再加 8 小时
   return new Date(now.getTime() + (now.getTimezoneOffset() + TZ_OFFSET) * 60000);
 }
 const pad = n => String(n).padStart(2,'0');
 const keyOf = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 const prettyOf = s => { const [y,m,d] = s.split('-'); return `${y}.${m}.${d}`; };
 const parseKey = s => { const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); };
-const hm = d => pad(d.getHours()) + ':' + pad(d.getMinutes());
 const toMin = t => { const [h,m] = t.split(':').map(Number); return h*60+m; };
 const toHM  = m => pad(Math.floor(m/60)) + ':' + pad(m%60);
 
-/* ── 稳定随机：同一个种子永远出同一个数 ── */
+/* 稳定随机：同一个种子永远同一个数 */
 function seeded(str){
   let h = 2166136261;
-  for(let i=0;i<str.length;i++){
-    h ^= str.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  // 打散一下
+  for(let i=0;i<str.length;i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
   h ^= h >>> 15; h = Math.imul(h, 2246822507);
   h ^= h >>> 13; h = Math.imul(h, 3266489909);
   h ^= h >>> 16;
   return (h >>> 0) / 4294967296;
 }
 
+/* ── 内容来源：本地导入的优先 ── */
 const CUSTOM = 'letters.custom';
 function readCustom(){
   try{
     const raw = localStorage.getItem(CUSTOM);
     if(!raw) return null;
     const o = JSON.parse(raw);
-    if(!o || !o.MESSAGES) return null;
-    return o;
+    return (o && o.MESSAGES) ? o : null;
   }catch(e){ return null; }
 }
-
 function readGlobals(){
   const c = readCustom();
-  if(c) return {
-    M: c.MESSAGES,
-    S: c.SLOTS || ((typeof SLOTS !== 'undefined') ? SLOTS : {}),
-    D: c.START_DATE || ((typeof START_DATE !== 'undefined') ? START_DATE : null),
-    custom: true
-  };
+  const S0 = (typeof SLOTS !== 'undefined') ? SLOTS : (window.SLOTS || {});
+  const D0 = (typeof START_DATE !== 'undefined') ? START_DATE : (window.START_DATE || null);
+  if(c) return { M:c.MESSAGES, S:c.SLOTS || S0, D:c.START_DATE || D0, custom:true };
   return {
     M: (typeof MESSAGES !== 'undefined') ? MESSAGES : (window.MESSAGES || {}),
-    S: (typeof SLOTS !== 'undefined') ? SLOTS : (window.SLOTS || {}),
-    D: (typeof START_DATE !== 'undefined') ? START_DATE : (window.START_DATE || null),
-    custom: false
+    S: S0, D: D0, custom:false
   };
 }
 
-/* ── 今天的四条：分别是什么、几点 ── */
+/* ── 今天的几条 ── */
 function planFor(dateKey){
   const {M, S, D} = readGlobals();
   if(!D) return [];
-
   const days = Math.round((parseKey(dateKey) - parseKey(D)) / 86400000);
   if(days < 0) return [];
 
-  const order = ['morning','afternoon','evening','wild'];
   const out = [];
-
-  for(const name of order){
-    const list = M[name];
-    const slot = S[name];
-    if(!list || !slot || days >= list.length) continue;
-
+  for(const name of Object.keys(S)){
+    const list = M[name], slot = S[name];
+    if(!Array.isArray(list) || !slot || days >= list.length) continue;
     const [lo, hi] = slot.range.map(toMin);
-    const r = seeded(dateKey + ':' + name);
-    const at = lo + Math.floor(r * (hi - lo + 1));
-
-    out.push({
-      name,
-      label: slot.label,
-      at: toHM(at),
-      atMin: at,
-      text: list[days]
-    });
+    const at = lo + Math.floor(seeded(dateKey + ':' + name) * (hi - lo + 1));
+    out.push({ name, label: slot.label, at: toHM(at), atMin: at, text: list[days] });
   }
   return out.sort((a,b) => a.atMin - b.atMin);
 }
@@ -364,6 +448,8 @@ function writeSeen(o){
 }
 
 /* ── 渲染 ── */
+var pastExpanded = false;
+
 function syncToSW(){
   if(!navigator.serviceWorker || !navigator.serviceWorker.controller) return;
   const {M, S, D} = readGlobals();
@@ -382,7 +468,6 @@ function render(){
   const arrived = plan.filter(p => p.atMin <= nowMin);
   const waiting = plan.filter(p => p.atMin >  nowMin);
 
-  // 到了的存下来
   if(arrived.length){
     const seen = readSeen();
     seen[k] = arrived.map(p => ({ label:p.label, at:p.at, text:p.text }));
@@ -399,9 +484,7 @@ function render(){
       const el = document.createElement('div');
       el.className = 'letter';
       el.style.animationDelay = (i * 0.12) + 's';
-      el.innerHTML =
-        '<div class="meta"><span class="slot"></span><span class="at"></span></div>' +
-        '<div class="text"></div>';
+      el.innerHTML = '<div class="meta"><span class="slot"></span><span class="at"></span></div><div class="text"></div>';
       el.querySelector('.slot').textContent = p.label;
       el.querySelector('.at').textContent = p.at;
       el.querySelector('.text').textContent = p.text;
@@ -427,9 +510,20 @@ function render(){
   // 往前
   const seen = readSeen();
   const past = Object.keys(seen).filter(d => d !== k).sort().reverse();
+  const LIMIT = 3;
+  const shown = pastExpanded ? past : past.slice(0, LIMIT);
+
+  const moreBtn = $('more');
+  if(past.length > LIMIT){
+    moreBtn.style.display = 'block';
+    moreBtn.textContent = pastExpanded ? '收起' : '更早的（还有 ' + (past.length - LIMIT) + ' 天）';
+  } else {
+    moreBtn.style.display = 'none';
+  }
+
   if(past.length){
     $('pastList').innerHTML = '';
-    past.forEach(d => {
+    shown.forEach(d => {
       const day = document.createElement('div');
       day.className = 'day';
       const head = document.createElement('div');
@@ -449,6 +543,8 @@ function render(){
   }
 }
 
+$('more').addEventListener('click', () => { pastExpanded = !pastExpanded; render(); });
+
 /* ── Service Worker ── */
 let reg = null;
 
@@ -460,6 +556,7 @@ async function boot(){
   try{
     reg = await navigator.serviceWorker.register('./sw.js');
     await navigator.serviceWorker.ready;
+    syncToSW();
     refreshStatus();
   }catch(err){
     $('status').textContent = '注册失败';
@@ -530,9 +627,8 @@ $('test').addEventListener('click', async () => {
   if(!reg) await boot();
 
   const now = fzNow();
-  const plan = planFor(keyOf(now));
   const nowMin = now.getHours()*60 + now.getMinutes();
-  const arrived = plan.filter(p => p.atMin <= nowMin);
+  const arrived = planFor(keyOf(now)).filter(p => p.atMin <= nowMin);
   const last = arrived[arrived.length-1];
 
   await reg.showNotification('有一条', {
@@ -543,130 +639,129 @@ $('test').addEventListener('click', async () => {
   });
 });
 
+/* ── 抽屉 ── */
+const sheet = $('sheet');
 
-/* ── 抽屉：导入 / 导出 / 恢复 ── */
-const sheet = document.getElementById('sheet');
-
+function describeSource(){
+  const c = readCustom();
+  if(!c) return '现在用的是网页自带的内容。';
+  const n = Object.keys(c.MESSAGES || {})
+    .reduce((sum,k) => sum + (Array.isArray(c.MESSAGES[k]) ? c.MESSAGES[k].length : 0), 0);
+  return '现在用的是你自己的内容，共 ' + n + ' 条。';
+}
 function openSheet(){
-  const {custom} = readGlobals();
-  document.getElementById('srcLine').textContent =
-    custom ? '现在用的是你导入的内容。' : '现在用的是随网页带的默认内容。';
-  document.getElementById('importMsg').textContent = '';
-  document.getElementById('opMsg').textContent = '';
+  $('srcLine').textContent = describeSource();
+  $('msg').textContent = '';
   sheet.classList.add('open');
 }
 function closeSheet(){ sheet.classList.remove('open'); }
 
-document.getElementById('cog').addEventListener('click', openSheet);
-document.getElementById('closeSheet').addEventListener('click', closeSheet);
+$('cog').addEventListener('click', openSheet);
+$('closeSheet').addEventListener('click', closeSheet);
 sheet.addEventListener('click', e => { if(e.target === sheet) closeSheet(); });
 
-function say(el, text, ok){
-  const n = document.getElementById(el);
+function say(text, ok){
+  const n = $('msg');
   n.textContent = text;
   n.className = 'msg ' + (ok ? 'ok' : 'bad');
 }
 
-/* 导入 */
-document.getElementById('doImport').addEventListener('click', () => {
-  const raw = document.getElementById('importBox').value.trim();
-  if(!raw){ say('importMsg', '框里是空的。', false); return; }
+function parseBox(){
+  const raw = $('box').value.trim();
+  if(!raw){ say('框里是空的。', false); return null; }
 
   let obj = null;
   try{
     obj = JSON.parse(raw);
   }catch(e){
-    // 也接受 js 写法：var MESSAGES = {...}
     try{
-      const fn = new Function(raw + `;return {
-        MESSAGES: typeof MESSAGES!=="undefined"?MESSAGES:null,
-        SLOTS: typeof SLOTS!=="undefined"?SLOTS:null,
-        START_DATE: typeof START_DATE!=="undefined"?START_DATE:null
-      };`);
+      const fn = new Function(raw + ';return {' +
+        'MESSAGES: typeof MESSAGES!=="undefined"?MESSAGES:null,' +
+        'SLOTS: typeof SLOTS!=="undefined"?SLOTS:null,' +
+        'START_DATE: typeof START_DATE!=="undefined"?START_DATE:null};');
       obj = fn();
     }catch(e2){
-      say('importMsg', '这段读不出来。检查一下有没有漏逗号或者引号。', false);
-      return;
+      say('这段读不出来。检查一下逗号和引号。', false);
+      return null;
     }
   }
 
-  if(!obj || !obj.MESSAGES){
-    say('importMsg', '没找到 MESSAGES。至少要有这一项。', false);
-    return;
+  if(obj && !obj.MESSAGES){
+    if(Object.values(obj).some(v => Array.isArray(v))) obj = { MESSAGES: obj };
   }
-  const names = Object.keys(obj.MESSAGES).filter(k => Array.isArray(obj.MESSAGES[k]));
-  if(!names.length){
-    say('importMsg', 'MESSAGES 里没有任何数组。', false);
-    return;
+  if(!obj || !obj.MESSAGES){ say('没找到消息。', false); return null; }
+  if(!Object.keys(obj.MESSAGES).some(k => Array.isArray(obj.MESSAGES[k]))){
+    say('里面没有任何数组。', false); return null;
   }
-
-  try{
-    localStorage.setItem(CUSTOM, JSON.stringify({
-      START_DATE: obj.START_DATE || null,
-      SLOTS: obj.SLOTS || null,
-      MESSAGES: obj.MESSAGES
-    }));
-  }catch(e){
-    say('importMsg', '存不进去，可能是内容太大。', false);
-    return;
-  }
-
-  const total = names.reduce((n,k) => n + obj.MESSAGES[k].length, 0);
-  say('importMsg', '存好了。' + names.length + ' 个时段，共 ' + total + ' 条。', true);
-  render();
-  document.getElementById('srcLine').textContent = '现在用的是你导入的内容。';
-});
-
-/* 导出内容 */
-document.getElementById('doExport').addEventListener('click', async () => {
-  const {M, S, D} = readGlobals();
-  const text = JSON.stringify({ START_DATE: D, SLOTS: S, MESSAGES: M }, null, 2);
-  await handOff(text, '内容');
-});
-
-/* 导出读过的记录 */
-document.getElementById('doExportSeen').addEventListener('click', async () => {
-  const text = JSON.stringify(readSeen(), null, 2);
-  await handOff(text, '记录');
-});
-
-async function handOff(text, what){
-  try{
-    await navigator.clipboard.writeText(text);
-    say('opMsg', what + '已经复制到剪贴板，粘到记事本里存着。', true);
-  }catch(e){
-    document.getElementById('importBox').value = text;
-    say('opMsg', '复制不了，' + what + '放到上面那个框里了，自己长按复制。', true);
-  }
+  return obj;
 }
 
-/* 恢复默认 */
-let resetArmed = false;
-document.getElementById('doReset').addEventListener('click', () => {
-  const btn = document.getElementById('doReset');
-  if(!resetArmed){
-    resetArmed = true;
-    btn.textContent = '再点一次，导入的内容会没掉';
-    say('opMsg', '读过的记录不会动，只清导入的内容。', true);
-    setTimeout(() => {
-      resetArmed = false;
-      btn.textContent = '恢复默认';
-    }, 5000);
-    return;
-  }
-  localStorage.removeItem(CUSTOM);
-  resetArmed = false;
-  btn.textContent = '恢复默认';
-  say('opMsg', '回到默认内容了。', true);
-  document.getElementById('srcLine').textContent = '现在用的是随网页带的默认内容。';
+function saveCustom(data){
+  try{ localStorage.setItem(CUSTOM, JSON.stringify(data)); return true; }
+  catch(e){ say('存不进去，可能内容太大了。', false); return false; }
+}
+function countOf(M){
+  return Object.keys(M).reduce((n,k) => n + (Array.isArray(M[k]) ? M[k].length : 0), 0);
+}
+
+$('doImport').addEventListener('click', () => {
+  const obj = parseBox();
+  if(!obj) return;
+  if(!saveCustom({
+    START_DATE: obj.START_DATE || null,
+    SLOTS: obj.SLOTS || null,
+    MESSAGES: obj.MESSAGES
+  })) return;
+  say('换好了，现在共 ' + countOf(obj.MESSAGES) + ' 条。', true);
+  $('box').value = '';
+  $('srcLine').textContent = describeSource();
   render();
+});
+
+$('doAppend').addEventListener('click', () => {
+  const obj = parseBox();
+  if(!obj) return;
+
+  const {M, S, D} = readGlobals();
+  const merged = {};
+  Object.keys(M).forEach(k => { merged[k] = Array.isArray(M[k]) ? M[k].slice() : M[k]; });
+
+  let added = 0;
+  Object.keys(obj.MESSAGES).forEach(k => {
+    const incoming = obj.MESSAGES[k];
+    if(!Array.isArray(incoming)) return;
+    if(!Array.isArray(merged[k])) merged[k] = [];
+    merged[k] = merged[k].concat(incoming);
+    added += incoming.length;
+  });
+
+  if(!saveCustom({
+    START_DATE: obj.START_DATE || D || null,
+    SLOTS: obj.SLOTS || S || null,
+    MESSAGES: merged
+  })) return;
+  say('加上了 ' + added + ' 条，现在共 ' + countOf(merged) + ' 条。', true);
+  $('box').value = '';
+  $('srcLine').textContent = describeSource();
+  render();
+});
+
+$('doExport').addEventListener('click', async () => {
+  const {M, S, D} = readGlobals();
+  const text = JSON.stringify({ START_DATE: D, SLOTS: S, MESSAGES: M }, null, 2);
+  try{
+    await navigator.clipboard.writeText(text);
+    say('复制好了，粘到记事本存着。', true);
+  }catch(e){
+    $('box').value = text;
+    say('复制不了，内容放框里了，自己长按选中。', true);
+  }
 });
 
 render();
 boot();
 
 document.addEventListener('visibilitychange', () => { if(!document.hidden) render(); });
-// 页面开着的时候，每分钟检查一次有没有新的到点
 setInterval(render, 60000);
 </script>
 </html>
