@@ -4,7 +4,7 @@
  * 时间一律按福州时间（UTC+8）算。
  */
 
-const CACHE = 'letters-v7';
+const CACHE = 'letters-v8';
 const ASSETS = ['./', './index.html', './manifest.json'];
 
 self.addEventListener('install', e => {
