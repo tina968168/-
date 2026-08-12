@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>通知测试</title>
+<title>推送订阅</title>
 
 <style>
   :root{
@@ -16,126 +16,200 @@
     padding:24px 18px 60px; line-height:1.7;
     display:flex; flex-direction:column; align-items:center;
   }
-  .wrap{width:100%; max-width:420px}
+  .wrap{width:100%; max-width:440px}
   h1{font-size:19px; font-weight:600; margin-bottom:4px}
-  .sub{font-size:13px; color:var(--dim); margin-bottom:22px}
-  .row{
+  .sub{font-size:13px; color:var(--dim); margin-bottom:20px}
+
+  .step{
     background:var(--card); border:1px solid var(--line);
-    border-radius:10px; padding:13px 15px; margin-bottom:9px;
-    display:flex; align-items:flex-start; gap:11px; font-size:13.5px;
+    border-radius:12px; padding:16px; margin-bottom:12px;
   }
-  .row b{font-weight:600; display:block; margin-bottom:1px}
-  .row span{color:var(--dim); font-size:12.5px}
-  .dot{width:9px;height:9px;border-radius:50%;flex:none;margin-top:7px;background:var(--dim)}
-  .dot.ok{background:var(--ok)} .dot.bad{background:var(--bad)} .dot.warn{background:var(--warn)}
+  .step h2{
+    font-size:14px; font-weight:600; margin-bottom:4px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .num{
+    width:20px; height:20px; border-radius:50%; flex:none;
+    background:#2a3040; color:var(--dim);
+    font-size:11px; display:flex; align-items:center; justify-content:center;
+  }
+  .num.done{background:#2d4a3a; color:#a8dcc0}
+  .step p{font-size:12.5px; color:var(--dim); margin-bottom:10px}
+
   button{
-    width:100%; margin-top:16px; padding:15px;
+    width:100%; padding:13px;
     background:#252c3c; color:var(--text);
-    border:1px solid var(--line); border-radius:10px;
-    font-size:15px; font-family:inherit; cursor:pointer;
+    border:1px solid var(--line); border-radius:9px;
+    font-size:14px; font-family:inherit; cursor:pointer;
   }
   button:active{background:#2e3648}
-  .log{
-    margin-top:20px; font-size:12.5px; color:var(--dim);
-    border-top:1px solid var(--line); padding-top:14px;
-    white-space:pre-wrap; word-break:break-all;
+  button:disabled{opacity:.35}
+  button.copy{margin-top:8px; background:#1d2432; font-size:13px; padding:10px}
+
+  .out{
+    margin-top:10px; padding:10px 11px;
+    background:#0a0c11; border:1px solid var(--line); border-radius:7px;
+    font-family:ui-monospace,monospace; font-size:10.5px; line-height:1.6;
+    color:#9fb3c8; word-break:break-all; white-space:pre-wrap;
+    max-height:200px; overflow:auto; display:none;
   }
-  .verdict{margin-top:18px; padding:14px 15px; border-radius:10px; font-size:13.5px; display:none}
-  .verdict.show{display:block}
-  .verdict.good{background:#16261e;border:1px solid #2d4a3a;color:#a8dcc0}
-  .verdict.fail{background:#2a1a1a;border:1px solid #4a2d2d;color:#e0a8a8}
+  .out.show{display:block}
+  .label{font-size:10.5px; color:#5f6674; text-transform:uppercase; letter-spacing:.1em; margin:9px 0 3px}
+
+  .note{
+    margin-top:6px; font-size:12px; color:var(--warn);
+    background:#241f14; border:1px solid #3d3520; border-radius:7px;
+    padding:9px 11px; display:none;
+  }
+  .note.show{display:block}
+  .err{color:#e0a8a8; background:#2a1a1a; border-color:#4a2d2d}
 </style>
 
 <div class="wrap">
-  <h1>通知能力测试</h1>
-  <div class="sub">这一版走 Service Worker，安卓上必须这样。</div>
+  <h1>推送订阅</h1>
+  <div class="sub">这一步不用注册任何账号。目标是拿到一串订阅地址。</div>
 
-  <div class="row"><span class="dot" id="d1"></span><div><b>Notification API</b><span id="s1">检测中…</span></div></div>
-  <div class="row"><span class="dot" id="d2"></span><div><b>Service Worker</b><span id="s2">检测中…</span></div></div>
-  <div class="row"><span class="dot" id="d3"></span><div><b>Push API</b><span id="s3">检测中…</span></div></div>
-  <div class="row"><span class="dot" id="d4"></span><div><b>安全上下文</b><span id="s4">检测中…</span></div></div>
-  <div class="row"><span class="dot" id="d5"></span><div><b>通知权限</b><span id="s5">检测中…</span></div></div>
+  <div class="step">
+    <h2><span class="num" id="n1">1</span>生成密钥对</h2>
+    <p>一公一私。公钥给浏览器用，私钥以后给服务器用，别给别人看。</p>
+    <button id="gen">生成</button>
+    <div class="out" id="keys"></div>
+    <button class="copy" id="copyKeys" style="display:none">复制两把钥匙</button>
+    <div class="note" id="note1"></div>
+  </div>
 
-  <button id="btn">发一条通知</button>
-  <button id="btn2" style="margin-top:9px">发一条延迟 10 秒的通知</button>
+  <div class="step">
+    <h2><span class="num" id="n2">2</span>订阅</h2>
+    <p>用公钥向浏览器换一个专属地址。这个地址只属于你这台手机上的这个网页。</p>
+    <button id="sub" disabled>订阅</button>
+    <div class="out" id="subOut"></div>
+    <button class="copy" id="copySub" style="display:none">复制订阅信息</button>
+    <div class="note" id="note2"></div>
+  </div>
 
-  <div class="verdict" id="verdict"></div>
-  <div class="log" id="log"></div>
+  <div class="step">
+    <h2><span class="num" id="n3">3</span>存好</h2>
+    <p>把整理出来的这一段复制到记事本存着。下一步配 Cloudflare 要用。</p>
+    <button id="showAll" disabled>把要保存的东西整理出来</button>
+    <div class="out" id="allOut"></div>
+    <button class="copy" id="copyAll" style="display:none">全部复制</button>
+  </div>
 </div>
 
 <script>
 const $ = id => document.getElementById(id);
-const lines = [];
-function log(s){ lines.push(s); $('log').textContent = lines.join('\n'); }
-function set(n, state, text){ $('d'+n).className='dot '+state; $('s'+n).textContent=text; }
 
-const hasNotif = 'Notification' in window;
-const hasSW    = 'serviceWorker' in navigator;
-const hasPush  = 'PushManager' in window;
-const secure   = window.isSecureContext;
-
-set(1, hasNotif?'ok':'bad', hasNotif?'支持':'不支持');
-set(2, hasSW?'ok':'bad',    hasSW?'支持':'不支持');
-set(3, hasPush?'ok':'warn', hasPush?'支持 — 定时推送有戏':'不支持');
-set(4, secure?'ok':'bad',   secure?'是':'否 — 必须用 https 打开');
-
-function refreshPerm(){
-  if(!hasNotif){ set(5,'bad','不可用'); return; }
-  const p = Notification.permission;
-  set(5, p==='granted'?'ok':p==='denied'?'bad':'warn',
-      p==='granted'?'已授权':p==='denied'?'已被拒绝':'尚未询问');
+function b64urlToU8(s){
+  const pad = '='.repeat((4 - s.length % 4) % 4);
+  const b64 = (s + pad).replace(/-/g,'+').replace(/_/g,'/');
+  const raw = atob(b64);
+  const arr = new Uint8Array(raw.length);
+  for(let i=0;i<raw.length;i++) arr[i] = raw.charCodeAt(i);
+  return arr;
 }
-refreshPerm();
-log('UA: ' + navigator.userAgent);
-
-let reg = null;
-
-// 注册同源的真实 sw 文件
-async function ensureSW(){
-  if(reg) return reg;
-  reg = await navigator.serviceWorker.register('./sw.js');
-  await navigator.serviceWorker.ready;
-  log('Service Worker 注册成功');
-  return reg;
+function u8ToB64url(u8){
+  let s = '';
+  for(const b of u8) s += String.fromCharCode(b);
+  return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 }
 
-async function fire(delayMs, title, body){
-  const v = $('verdict');
-  v.className = 'verdict';
+let PUB = '', PRIV = '', SUBSCRIPTION = null;
 
+function showNote(el, msg, isErr){
+  el.textContent = msg;
+  el.className = 'note show' + (isErr ? ' err' : '');
+}
+
+$('gen').addEventListener('click', async () => {
+  try{
+    const pair = await crypto.subtle.generateKey(
+      { name:'ECDSA', namedCurve:'P-256' }, true, ['sign','verify']
+    );
+    const rawPub = new Uint8Array(await crypto.subtle.exportKey('raw', pair.publicKey));
+    const jwkPriv = await crypto.subtle.exportKey('jwk', pair.privateKey);
+
+    PUB  = u8ToB64url(rawPub);
+    PRIV = jwkPriv.d;
+
+    $('keys').className = 'out show';
+    $('keys').innerHTML =
+      '<div class="label">公钥 public</div>' + PUB +
+      '<div class="label">私钥 private（保密）</div>' + PRIV;
+
+    $('n1').className = 'num done';
+    $('n1').textContent = '✓';
+    $('copyKeys').style.display = 'block';
+    $('sub').disabled = false;
+    showNote($('note1'), '生成好了。私钥别发到任何公开的地方，包括聊天记录和 GitHub。', false);
+  }catch(err){
+    showNote($('note1'), '生成失败：' + err.message, true);
+  }
+});
+
+$('sub').addEventListener('click', async () => {
   try{
     const perm = await Notification.requestPermission();
-    refreshPerm();
-    log('权限: ' + perm);
     if(perm !== 'granted'){
-      v.className='verdict show fail';
-      v.textContent='权限没给。去 Edge 设置 → 网站权限 → 通知，把这个站点改成允许。';
+      showNote($('note2'), '通知权限没给，订阅不了。', true);
       return;
     }
 
-    const r = await ensureSW();
+    const reg = await navigator.serviceWorker.register('./sw.js');
+    await navigator.serviceWorker.ready;
 
-    if(delayMs > 0){
-      v.className='verdict show good';
-      v.textContent = '好了，' + (delayMs/1000) + ' 秒后发。现在马上把浏览器切到后台，或者直接锁屏 —— 我们要看的就是它能不能在你没看着的时候弹出来。';
-      setTimeout(async () => {
-        await r.showNotification(title, { body, tag:'t'+Date.now(), requireInteraction:false });
-        log('延迟通知已发出');
-      }, delayMs);
-    } else {
-      await r.showNotification(title, { body, tag:'t'+Date.now() });
-      log('通知已发出');
-      v.className='verdict show good';
-      v.innerHTML='已经发出去了。<br><br>下拉通知栏看看：<br>· 有 → 这一关过了<br>· 没有 → 手机设置里找到 Edge，看通知权限是不是被系统关了';
-    }
+    const old = await reg.pushManager.getSubscription();
+    if(old) await old.unsubscribe();
+
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: b64urlToU8(PUB)
+    });
+
+    SUBSCRIPTION = sub.toJSON();
+
+    $('subOut').className = 'out show';
+    $('subOut').innerHTML =
+      '<div class="label">endpoint</div>' + SUBSCRIPTION.endpoint +
+      '<div class="label">p256dh</div>' + SUBSCRIPTION.keys.p256dh +
+      '<div class="label">auth</div>' + SUBSCRIPTION.keys.auth;
+
+    $('n2').className = 'num done';
+    $('n2').textContent = '✓';
+    $('copySub').style.display = 'block';
+    $('showAll').disabled = false;
+    showNote($('note2'), '成功了。endpoint 里带 fcm.googleapis.com 说明走的是安卓的推送通道，正常。', false);
   }catch(err){
-    log('出错: ' + err.name + ' — ' + err.message);
-    const v2 = $('verdict');
-    v2.className='verdict show fail';
-    v2.textContent='出错了：' + err.message;
+    showNote($('note2'), '订阅失败：' + err.name + ' — ' + err.message, true);
   }
+});
+
+function bundle(){
+  return JSON.stringify({
+    vapidPublic: PUB,
+    vapidPrivate: PRIV,
+    subscription: SUBSCRIPTION
+  }, null, 2);
 }
 
-$('btn').addEventListener('click',  () => fire(0,     '测试成功', '看到这条，说明通知能弹。'));
-$('btn2').addEventListener('click', () => fire(10000, '十秒后的我', '这条是在你没看着页面的时候弹出来的。'));
+$('showAll').addEventListener('click', () => {
+  $('allOut').className = 'out show';
+  $('allOut').textContent = bundle();
+  $('n3').className = 'num done';
+  $('n3').textContent = '✓';
+  $('copyAll').style.display = 'block';
+});
+
+async function copy(text, btn){
+  try{
+    await navigator.clipboard.writeText(text);
+    const t = btn.textContent;
+    btn.textContent = '已复制';
+    setTimeout(()=>btn.textContent=t, 1500);
+  }catch(e){
+    alert('复制失败，长按上面的文字手动选中吧');
+  }
+}
+$('copyKeys').addEventListener('click', e => copy('public: '+PUB+'\nprivate: '+PRIV, e.target));
+$('copySub').addEventListener('click',  e => copy(JSON.stringify(SUBSCRIPTION,null,2), e.target));
+$('copyAll').addEventListener('click',  e => copy(bundle(), e.target));
 </script>
