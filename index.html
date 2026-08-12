@@ -171,6 +171,8 @@ const $ = id => document.getElementById(id);
 const pad = n => String(n).padStart(2,'0');
 const keyOf = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 const prettyOf = s => { const [y,m,d] = s.split('-'); return `${y}.${m}.${d}`; };
+// 关键：按本地时间解析，别让浏览器当成 UTC
+const parseKey = s => { const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); };
 
 /* ── 挑今天这条 ──
    规则：按日期在列表里往下走，从 START_DATE 起第 N 天用第 N 条。
@@ -183,9 +185,9 @@ function pickFor(dateKey){
   if(exact) return exact;
 
   // 否则按天数顺序取
-  const start = new Date(window.START_DATE || MESSAGES[0].date || dateKey);
-  const today = new Date(dateKey);
-  const days = Math.floor((today - start) / 86400000);
+  const start = parseKey(window.START_DATE || dateKey);
+  const today = parseKey(dateKey);
+  const days = Math.round((today - start) / 86400000);
   const seq = MESSAGES.filter(m => !m.date);
   if(days < 0 || days >= seq.length) return null;
   return seq[days];
@@ -267,16 +269,28 @@ async function refreshStatus(){
     }catch(e){}
   }
 
-  let s;
-  if(perm !== 'granted')      s = '还没开启';
-  else if(!hasPeriodic)       s = '已开启 · 打开时送达';
-  else if(registered)         s = '已开启 · 后台唤醒中';
-  else                        s = '已开启 · 后台未注册';
-  $('status').textContent = s;
+  const installed = window.matchMedia('(display-mode: standalone)').matches
+                 || window.navigator.standalone === true;
 
-  $('tiny').textContent = hasPeriodic
-    ? '系统决定什么时候唤醒，通常一天一次。装到桌面后更稳。'
-    : '这台设备不支持后台唤醒，所以提醒会在你打开时补上。内容一条都不会少。';
+  let s, tip;
+  if(perm !== 'granted'){
+    s = '还没开启';
+    tip = '点上面那个按钮。';
+  } else if(registered){
+    s = '已开启 · 后台唤醒中';
+    tip = '系统决定什么时候唤醒，通常一天一次。';
+  } else if(!installed){
+    s = '已开启 · 未装到桌面';
+    tip = '现在是浏览器标签页，后台唤醒用不了。菜单里选「添加到手机」，然后从桌面图标进来，再点一次开启。';
+  } else if(!hasPeriodic){
+    s = '已开启 · 打开时送达';
+    tip = '这台设备不支持后台唤醒，提醒会在你打开时补上。内容一条都不会少。';
+  } else {
+    s = '已开启 · 后台未注册';
+    tip = '系统没批准后台唤醒。多用几天有时会通过；不通过也不影响，打开时会补上。';
+  }
+  $('status').textContent = s;
+  $('tiny').textContent = tip;
 }
 
 $('enable').addEventListener('click', async () => {
