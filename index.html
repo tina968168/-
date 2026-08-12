@@ -605,6 +605,7 @@ async function boot(){
     await navigator.serviceWorker.ready;
     syncToSW();
     refreshStatus();
+    scheduleToday();
   }catch(err){
     $('status').textContent = '注册失败';
     $('tiny').textContent = err.message;
@@ -629,7 +630,7 @@ async function refreshStatus(){
     s = '还没开启'; tip = '点上面那个按钮。';
   } else if(registered){
     s = '已开启 · 后台唤醒中';
-    tip = '系统决定什么时候唤醒。到点没醒的，你打开时会补上。';
+    tip = '系统会定期叫醒它，但时间由系统定，不一定准点。页面开着的时候是准的。';
   } else if(!installed){
     s = '已开启 · 未装到桌面';
     tip = '现在是浏览器标签页，后台唤醒用不了。菜单里选「添加到手机」，从桌面图标进来再点一次。';
@@ -637,8 +638,8 @@ async function refreshStatus(){
     s = '已开启 · 打开时送达';
     tip = '这台设备不支持后台唤醒，提醒会在你打开时补上。内容一条都不会少。';
   } else {
-    s = '已开启 · 后台未注册';
-    tip = '系统还没批准后台唤醒，多用几天有时会通过。不通过也不影响。';
+    s = '已开启 · 页面开着时准时';
+    tip = '系统还没批准后台唤醒，多用几天有时会通过。在那之前：只要这个页面开过、还没被系统清掉，到点就会弹；清掉了也不丢，下次打开会补上。';
   }
   $('status').textContent = s;
   $('tiny').textContent = tip;
@@ -662,6 +663,7 @@ $('enable').addEventListener('click', async () => {
       try{ await reg.sync.register('check-letter'); }catch(e){}
     }
     refreshStatus();
+    scheduleToday();
   }catch(err){
     $('status').textContent = '出错';
     $('tiny').textContent = err.message;
@@ -685,6 +687,76 @@ $('test').addEventListener('click', async () => {
     badge: './icon-mono.png'
   });
 });
+
+
+/* ── 定时器兜底 ──
+ * 系统还没批准后台唤醒时，靠这个：
+ * 页面打开过一次，就给今天剩下的每一条各挂一个定时器。
+ * 只要浏览器进程还活着，到点就弹。关掉就没了 —— 但内容不会丢，下次打开会补上。
+ */
+let timers = [];
+
+function clearTimers(){
+  timers.forEach(t => clearTimeout(t));
+  timers = [];
+}
+
+function sentKeyLocal(id){
+  try{
+    const o = JSON.parse(localStorage.getItem('letters.notified') || '{}');
+    return !!o[id];
+  }catch(e){ return false; }
+}
+function markSentLocal(id){
+  try{
+    const o = JSON.parse(localStorage.getItem('letters.notified') || '{}');
+    o[id] = 1;
+    // 只留最近 60 条，别无限长
+    const keys = Object.keys(o).sort();
+    while(keys.length > 60) delete o[keys.shift()];
+    localStorage.setItem('letters.notified', JSON.stringify(o));
+  }catch(e){}
+}
+
+async function popNow(p, dateKey){
+  const id = dateKey + '_' + p.name;
+  if(sentKeyLocal(id)) return;
+  if(!reg) return;
+  if(!('Notification' in window) || Notification.permission !== 'granted') return;
+  try{
+    await reg.showNotification('有一条', {
+      body: p.text.length > 80 ? p.text.slice(0,80) + '…' : p.text,
+      tag: 'letter-' + id,
+      icon: './icon-192.png',
+      badge: './icon-mono.png'
+    });
+    markSentLocal(id);
+  }catch(e){}
+}
+
+function scheduleToday(){
+  clearTimers();
+  if(!('Notification' in window) || Notification.permission !== 'granted') return;
+
+  const now = fzNow();
+  const dateKey = keyOf(now);
+  const nowMs = now.getHours()*3600000 + now.getMinutes()*60000 + now.getSeconds()*1000;
+
+  planFor(dateKey).forEach(p => {
+    const targetMs = p.atMin * 60000;
+    const delay = targetMs - nowMs;
+
+    if(delay <= 0){
+      // 已经过了：如果还没通知过，立刻补一条
+      popNow(p, dateKey);
+    } else if(delay < 12 * 3600000){
+      timers.push(setTimeout(() => {
+        popNow(p, dateKey);
+        render();
+      }, delay));
+    }
+  });
+}
 
 /* ── 抽屉 ── */
 const sheet = $('sheet');
@@ -763,6 +835,7 @@ $('doImport').addEventListener('click', () => {
   $('box').value = '';
   $('srcLine').textContent = describeSource();
   render();
+  scheduleToday();
 });
 
 $('doAppend').addEventListener('click', () => {
@@ -791,6 +864,7 @@ $('doAppend').addEventListener('click', () => {
   $('box').value = '';
   $('srcLine').textContent = describeSource();
   render();
+  scheduleToday();
 });
 
 $('doExport').addEventListener('click', async () => {
@@ -809,7 +883,9 @@ render();
 boot();
 if(window.__fillStars) setTimeout(window.__fillStars, 60);
 
-document.addEventListener('visibilitychange', () => { if(!document.hidden) render(); });
+document.addEventListener('visibilitychange', () => {
+  if(!document.hidden){ render(); scheduleToday(); }
+});
 setInterval(render, 60000);
 </script>
 </html>
