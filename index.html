@@ -149,6 +149,62 @@
     margin-top:14px; font-family:'Noto Serif SC',serif; font-weight:200;
     font-size:11.5px; line-height:1.9; color:#4a4d55;
   }
+
+  /* 右上角入口 */
+  .cog{
+    margin-left:14px; background:none; border:0; padding:4px 0 4px 6px;
+    width:auto; cursor:pointer; line-height:0;
+  }
+  .cog svg{width:15px; height:15px; opacity:.42; transition:opacity .3s}
+  .cog:active svg{opacity:.85}
+
+  /* 抽屉 */
+  .sheet{
+    position:fixed; inset:0; z-index:20;
+    background:rgba(6,7,11,.86);
+    backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+    display:flex; align-items:flex-end; justify-content:center;
+    opacity:0; pointer-events:none; transition:opacity .35s ease;
+  }
+  .sheet.open{opacity:1; pointer-events:auto}
+  .panel{
+    width:100%; max-width:440px;
+    background:#0e1119; border-top:1px solid var(--line);
+    padding:26px 26px calc(30px + env(safe-area-inset-bottom));
+    transform:translateY(14px); transition:transform .35s cubic-bezier(.2,.8,.25,1);
+    max-height:88vh; overflow-y:auto;
+  }
+  .sheet.open .panel{transform:none}
+  .panel h3{
+    font-family:'Barlow Condensed',sans-serif; font-weight:100;
+    font-size:10px; letter-spacing:.56em; text-transform:uppercase;
+    color:var(--whisper); margin-bottom:20px;
+  }
+  .panel textarea{
+    width:100%; min-height:130px; resize:vertical;
+    background:#080a0f; color:#b8b4aa;
+    border:1px solid var(--line); border-radius:2px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+    font-size:11.5px; line-height:1.75; padding:12px;
+    margin-bottom:10px;
+  }
+  .panel textarea:focus{outline:0; border-color:rgba(170,179,184,.34)}
+  .panel textarea::placeholder{color:#3d4048}
+  .panel .desc{
+    font-family:'Noto Serif SC',serif; font-weight:200;
+    font-size:12px; line-height:1.95; color:#5e6169; margin-bottom:12px;
+  }
+  .panel .divider{height:1px; background:var(--line); margin:24px 0}
+  .msg{
+    font-family:'Noto Serif SC',serif; font-weight:200;
+    font-size:12px; line-height:1.9; margin-top:10px; min-height:19px;
+  }
+  .msg.ok{color:#8fc4a6}
+  .msg.bad{color:#c99}
+  .src{
+    font-family:'Noto Serif SC',serif; font-weight:200;
+    font-size:11.5px; color:#4a4d55; margin-bottom:18px;
+  }
   @media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
 </style>
 
@@ -161,6 +217,12 @@
   <header class="mast">
     <span class="mark">Une lettre</span>
     <span class="today-date" id="todayDate"></span>
+    <button class="cog" id="cog" aria-label="设置">
+      <svg viewBox="0 0 16 16" fill="none" stroke="#aab3b8" stroke-width="1">
+        <circle cx="8" cy="8" r="2.3"/>
+        <path d="M8 1.2v2.1M8 12.7v2.1M14.8 8h-2.1M3.3 8H1.2M12.8 3.2l-1.5 1.5M4.7 11.3l-1.5 1.5M12.8 12.8l-1.5-1.5M4.7 4.7L3.2 3.2"/>
+      </svg>
+    </button>
   </header>
 
   <section class="today" id="today"></section>
@@ -177,6 +239,28 @@
     <div class="tiny" id="tiny"></div>
   </footer>
 
+</div>
+
+<div class="sheet" id="sheet">
+  <div class="panel">
+    <h3>内容</h3>
+    <div class="src" id="srcLine"></div>
+
+    <div class="desc">把一段内容粘进来。格式跟 messages.js 一样，存在这台设备上，不会传到任何地方。</div>
+    <textarea id="importBox" placeholder='{ "START_DATE": "2026-08-12", "SLOTS": {...}, "MESSAGES": {...} }'></textarea>
+    <button id="doImport">导入</button>
+    <div class="msg" id="importMsg"></div>
+
+    <div class="divider"></div>
+
+    <button id="doExport">导出当前内容</button>
+    <button id="doExportSeen">导出读过的记录</button>
+    <button id="doReset">恢复默认</button>
+    <div class="msg" id="opMsg"></div>
+
+    <div class="divider"></div>
+    <button id="closeSheet">关上</button>
+  </div>
 </div>
 
 <script src="./messages.js"></script>
@@ -212,11 +296,31 @@ function seeded(str){
   return (h >>> 0) / 4294967296;
 }
 
+const CUSTOM = 'letters.custom';
+function readCustom(){
+  try{
+    const raw = localStorage.getItem(CUSTOM);
+    if(!raw) return null;
+    const o = JSON.parse(raw);
+    if(!o || !o.MESSAGES) return null;
+    return o;
+  }catch(e){ return null; }
+}
+
 function readGlobals(){
-  const M = (typeof MESSAGES !== 'undefined') ? MESSAGES : (window.MESSAGES || {});
-  const S = (typeof SLOTS !== 'undefined') ? SLOTS : (window.SLOTS || {});
-  const D = (typeof START_DATE !== 'undefined') ? START_DATE : (window.START_DATE || null);
-  return {M, S, D};
+  const c = readCustom();
+  if(c) return {
+    M: c.MESSAGES,
+    S: c.SLOTS || ((typeof SLOTS !== 'undefined') ? SLOTS : {}),
+    D: c.START_DATE || ((typeof START_DATE !== 'undefined') ? START_DATE : null),
+    custom: true
+  };
+  return {
+    M: (typeof MESSAGES !== 'undefined') ? MESSAGES : (window.MESSAGES || {}),
+    S: (typeof SLOTS !== 'undefined') ? SLOTS : (window.SLOTS || {}),
+    D: (typeof START_DATE !== 'undefined') ? START_DATE : (window.START_DATE || null),
+    custom: false
+  };
 }
 
 /* ── 今天的四条：分别是什么、几点 ── */
@@ -260,7 +364,14 @@ function writeSeen(o){
 }
 
 /* ── 渲染 ── */
+function syncToSW(){
+  if(!navigator.serviceWorker || !navigator.serviceWorker.controller) return;
+  const {M, S, D} = readGlobals();
+  navigator.serviceWorker.controller.postMessage({ type:'sync-data', M, S, D });
+}
+
 function render(){
+  syncToSW();
   const now = fzNow();
   const k = keyOf(now);
   const nowMin = now.getHours()*60 + now.getMinutes();
@@ -430,6 +541,125 @@ $('test').addEventListener('click', async () => {
     icon: './icon-192.png',
     badge: './icon-mono.png'
   });
+});
+
+
+/* ── 抽屉：导入 / 导出 / 恢复 ── */
+const sheet = document.getElementById('sheet');
+
+function openSheet(){
+  const {custom} = readGlobals();
+  document.getElementById('srcLine').textContent =
+    custom ? '现在用的是你导入的内容。' : '现在用的是随网页带的默认内容。';
+  document.getElementById('importMsg').textContent = '';
+  document.getElementById('opMsg').textContent = '';
+  sheet.classList.add('open');
+}
+function closeSheet(){ sheet.classList.remove('open'); }
+
+document.getElementById('cog').addEventListener('click', openSheet);
+document.getElementById('closeSheet').addEventListener('click', closeSheet);
+sheet.addEventListener('click', e => { if(e.target === sheet) closeSheet(); });
+
+function say(el, text, ok){
+  const n = document.getElementById(el);
+  n.textContent = text;
+  n.className = 'msg ' + (ok ? 'ok' : 'bad');
+}
+
+/* 导入 */
+document.getElementById('doImport').addEventListener('click', () => {
+  const raw = document.getElementById('importBox').value.trim();
+  if(!raw){ say('importMsg', '框里是空的。', false); return; }
+
+  let obj = null;
+  try{
+    obj = JSON.parse(raw);
+  }catch(e){
+    // 也接受 js 写法：var MESSAGES = {...}
+    try{
+      const fn = new Function(raw + `;return {
+        MESSAGES: typeof MESSAGES!=="undefined"?MESSAGES:null,
+        SLOTS: typeof SLOTS!=="undefined"?SLOTS:null,
+        START_DATE: typeof START_DATE!=="undefined"?START_DATE:null
+      };`);
+      obj = fn();
+    }catch(e2){
+      say('importMsg', '这段读不出来。检查一下有没有漏逗号或者引号。', false);
+      return;
+    }
+  }
+
+  if(!obj || !obj.MESSAGES){
+    say('importMsg', '没找到 MESSAGES。至少要有这一项。', false);
+    return;
+  }
+  const names = Object.keys(obj.MESSAGES).filter(k => Array.isArray(obj.MESSAGES[k]));
+  if(!names.length){
+    say('importMsg', 'MESSAGES 里没有任何数组。', false);
+    return;
+  }
+
+  try{
+    localStorage.setItem(CUSTOM, JSON.stringify({
+      START_DATE: obj.START_DATE || null,
+      SLOTS: obj.SLOTS || null,
+      MESSAGES: obj.MESSAGES
+    }));
+  }catch(e){
+    say('importMsg', '存不进去，可能是内容太大。', false);
+    return;
+  }
+
+  const total = names.reduce((n,k) => n + obj.MESSAGES[k].length, 0);
+  say('importMsg', '存好了。' + names.length + ' 个时段，共 ' + total + ' 条。', true);
+  render();
+  document.getElementById('srcLine').textContent = '现在用的是你导入的内容。';
+});
+
+/* 导出内容 */
+document.getElementById('doExport').addEventListener('click', async () => {
+  const {M, S, D} = readGlobals();
+  const text = JSON.stringify({ START_DATE: D, SLOTS: S, MESSAGES: M }, null, 2);
+  await handOff(text, '内容');
+});
+
+/* 导出读过的记录 */
+document.getElementById('doExportSeen').addEventListener('click', async () => {
+  const text = JSON.stringify(readSeen(), null, 2);
+  await handOff(text, '记录');
+});
+
+async function handOff(text, what){
+  try{
+    await navigator.clipboard.writeText(text);
+    say('opMsg', what + '已经复制到剪贴板，粘到记事本里存着。', true);
+  }catch(e){
+    document.getElementById('importBox').value = text;
+    say('opMsg', '复制不了，' + what + '放到上面那个框里了，自己长按复制。', true);
+  }
+}
+
+/* 恢复默认 */
+let resetArmed = false;
+document.getElementById('doReset').addEventListener('click', () => {
+  const btn = document.getElementById('doReset');
+  if(!resetArmed){
+    resetArmed = true;
+    btn.textContent = '再点一次，导入的内容会没掉';
+    say('opMsg', '读过的记录不会动，只清导入的内容。', true);
+    setTimeout(() => {
+      resetArmed = false;
+      btn.textContent = '恢复默认';
+    }, 5000);
+    return;
+  }
+  localStorage.removeItem(CUSTOM);
+  resetArmed = false;
+  btn.textContent = '恢复默认';
+  say('opMsg', '回到默认内容了。', true);
+  document.getElementById('srcLine').textContent = '现在用的是随网页带的默认内容。';
+  render();
 });
 
 render();
