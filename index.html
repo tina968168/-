@@ -1,215 +1,337 @@
 <!DOCTYPE html>
+<html lang="zh">
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>推送订阅</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>信</title>
+
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#0b0d13">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,300;1,300&family=Barlow+Condensed:wght@100;200&family=Noto+Serif+SC:wght@200;300&display=swap" rel="stylesheet">
 
 <style>
   :root{
-    --bg:#0e1016; --card:#161a24; --line:#2a3040;
-    --text:#e4e0d6; --dim:#8a8f9c;
-    --ok:#7fc8a0; --bad:#d98a8a; --warn:#d9c48a;
+    --void:#0b0d13;
+    --bone:#ddd8cc;
+    --ash:#8f8b82;
+    --whisper:#5b5a5e;
+    --pale:#aab3b8;
+    --line:rgba(170,179,184,.16);
   }
-  *{box-sizing:border-box;margin:0;padding:0}
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{min-height:100%}
   body{
-    background:var(--bg); color:var(--text);
-    font-family:system-ui,-apple-system,"Noto Sans SC",sans-serif;
-    padding:24px 18px 60px; line-height:1.7;
-    display:flex; flex-direction:column; align-items:center;
+    background:var(--void); color:var(--bone);
+    font-family:'Noto Serif SC',serif;
+    display:flex; justify-content:center;
+    overflow-x:hidden; -webkit-font-smoothing:antialiased;
   }
-  .wrap{width:100%; max-width:440px}
-  h1{font-size:19px; font-weight:600; margin-bottom:4px}
-  .sub{font-size:13px; color:var(--dim); margin-bottom:20px}
 
-  .step{
-    background:var(--card); border:1px solid var(--line);
-    border-radius:12px; padding:16px; margin-bottom:12px;
-  }
-  .step h2{
-    font-size:14px; font-weight:600; margin-bottom:4px;
-    display:flex; align-items:center; gap:8px;
-  }
-  .num{
-    width:20px; height:20px; border-radius:50%; flex:none;
-    background:#2a3040; color:var(--dim);
-    font-size:11px; display:flex; align-items:center; justify-content:center;
-  }
-  .num.done{background:#2d4a3a; color:#a8dcc0}
-  .step p{font-size:12.5px; color:var(--dim); margin-bottom:10px}
+  /* 四层雾 */
+  .fog{position:fixed; inset:-15%; z-index:0; pointer-events:none}
+  .fog i{position:absolute; inset:0; display:block; mix-blend-mode:screen}
+  .fog i:nth-child(1){background:radial-gradient(ellipse 46% 32% at 24% 18%, rgba(27,29,58,.9), transparent 68%); animation:d1 34s ease-in-out infinite alternate}
+  .fog i:nth-child(2){background:radial-gradient(ellipse 40% 30% at 76% 34%, rgba(46,18,32,.8), transparent 70%); animation:d2 41s ease-in-out infinite alternate}
+  .fog i:nth-child(3){background:radial-gradient(ellipse 44% 34% at 56% 80%, rgba(15,42,42,.65), transparent 72%); animation:d3 47s ease-in-out infinite alternate}
+  .fog i:nth-child(4){background:radial-gradient(ellipse 34% 26% at 34% 56%, rgba(42,28,62,.75), transparent 72%); animation:d4 38s ease-in-out infinite alternate}
+  @keyframes d1{to{transform:translate(6%,4%) scale(1.16)}}
+  @keyframes d2{to{transform:translate(-7%,5%) scale(1.2)}}
+  @keyframes d3{to{transform:translate(4%,-6%) scale(1.14)}}
+  @keyframes d4{to{transform:translate(-5%,-4%) scale(1.22)}}
+  .vig{position:fixed; inset:0; z-index:1; pointer-events:none;
+    background:radial-gradient(ellipse 80% 64% at 50% 44%, transparent 38%, rgba(11,13,19,.94) 100%)}
+  .grain{position:fixed; inset:0; z-index:2; pointer-events:none; opacity:.05;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='4'/%3E%3C/filter%3E%3Crect width='150' height='150' filter='url(%23n)'/%3E%3C/svg%3E")}
 
+  .frame{
+    position:relative; z-index:3;
+    width:100%; max-width:440px; min-height:100vh;
+    padding:calc(30px + env(safe-area-inset-top)) 26px calc(50px + env(safe-area-inset-bottom));
+    display:flex; flex-direction:column;
+  }
+
+  /* 眉标 */
+  .mast{display:flex; align-items:baseline; margin-bottom:6px}
+  .mark{
+    font-family:'Barlow Condensed',sans-serif; font-weight:100;
+    font-size:11px; letter-spacing:.62em; text-transform:uppercase;
+    color:var(--whisper); text-indent:.62em;
+  }
+  .today-date{
+    font-family:'Cormorant',serif; font-style:italic; font-weight:300;
+    font-size:12px; letter-spacing:.14em; color:var(--whisper); margin-left:auto;
+  }
+
+  /* 今天这条 */
+  .today{
+    margin-top:52px;
+    opacity:0; transform:translateY(12px);
+    animation:rise 1.1s cubic-bezier(.2,.8,.25,1) .15s forwards;
+  }
+  @keyframes rise{to{opacity:1; transform:none}}
+
+  .stamp{
+    font-family:'Cormorant',serif; font-style:italic; font-weight:300;
+    font-size:25px; line-height:1; letter-spacing:.14em; color:#4c4a5c;
+  }
+  .text{
+    font-family:'Noto Serif SC',serif; font-weight:300;
+    font-size:16px; line-height:2.3; letter-spacing:.06em;
+    color:var(--bone); margin-top:14px; white-space:pre-wrap;
+  }
+  .empty{
+    font-family:'Noto Serif SC',serif; font-weight:200;
+    font-size:14px; line-height:2.2; color:var(--ash); margin-top:14px;
+  }
+
+  .hair{width:44px; height:1px; margin:34px 0 0;
+    background:linear-gradient(90deg,rgba(170,179,184,.42),transparent)}
+
+  /* 往前的 */
+  .past{margin-top:44px; flex:1}
+  .past-label{
+    font-family:'Barlow Condensed',sans-serif; font-weight:100;
+    font-size:10px; letter-spacing:.56em; text-transform:uppercase;
+    color:var(--whisper); margin-bottom:22px;
+  }
+  .item{padding:16px 0; border-bottom:1px solid var(--line)}
+  .item:last-child{border-bottom:0}
+  .item .d{
+    font-family:'Cormorant',serif; font-style:italic; font-weight:300;
+    font-size:13px; letter-spacing:.12em; color:#4c4a5c; margin-bottom:5px;
+  }
+  .item .t{
+    font-family:'Noto Serif SC',serif; font-weight:200;
+    font-size:13.5px; line-height:2.05; letter-spacing:.05em; color:#9d998f;
+    white-space:pre-wrap;
+  }
+  .none{font-family:'Noto Serif SC',serif; font-weight:200; font-size:13px; color:var(--whisper)}
+
+  /* 底部：状态 + 开关 */
+  .foot{margin-top:40px; padding-top:20px; border-top:1px solid var(--line)}
+  .status{
+    font-family:'Barlow Condensed',sans-serif; font-weight:100;
+    font-size:10.5px; letter-spacing:.3em; text-transform:uppercase;
+    color:var(--whisper); margin-bottom:12px; text-indent:.3em;
+  }
   button{
     width:100%; padding:13px;
-    background:#252c3c; color:var(--text);
-    border:1px solid var(--line); border-radius:9px;
-    font-size:14px; font-family:inherit; cursor:pointer;
+    background:transparent; color:var(--ash);
+    border:1px solid var(--line); border-radius:2px;
+    font-family:'Noto Serif SC',serif; font-weight:200;
+    font-size:13px; letter-spacing:.24em; text-indent:.24em;
+    cursor:pointer; transition:border-color .3s, color .3s;
   }
-  button:active{background:#2e3648}
-  button:disabled{opacity:.35}
-  button.copy{margin-top:8px; background:#1d2432; font-size:13px; padding:10px}
-
-  .out{
-    margin-top:10px; padding:10px 11px;
-    background:#0a0c11; border:1px solid var(--line); border-radius:7px;
-    font-family:ui-monospace,monospace; font-size:10.5px; line-height:1.6;
-    color:#9fb3c8; word-break:break-all; white-space:pre-wrap;
-    max-height:200px; overflow:auto; display:none;
+  button:active{border-color:rgba(170,179,184,.4); color:var(--bone)}
+  button+button{margin-top:8px}
+  .tiny{
+    margin-top:14px; font-family:'Noto Serif SC',serif; font-weight:200;
+    font-size:11.5px; line-height:1.9; color:#4a4d55;
   }
-  .out.show{display:block}
-  .label{font-size:10.5px; color:#5f6674; text-transform:uppercase; letter-spacing:.1em; margin:9px 0 3px}
-
-  .note{
-    margin-top:6px; font-size:12px; color:var(--warn);
-    background:#241f14; border:1px solid #3d3520; border-radius:7px;
-    padding:9px 11px; display:none;
-  }
-  .note.show{display:block}
-  .err{color:#e0a8a8; background:#2a1a1a; border-color:#4a2d2d}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
 </style>
 
-<div class="wrap">
-  <h1>推送订阅</h1>
-  <div class="sub">这一步不用注册任何账号。目标是拿到一串订阅地址。</div>
+<div class="fog"><i></i><i></i><i></i><i></i></div>
+<div class="vig"></div>
+<div class="grain"></div>
 
-  <div class="step">
-    <h2><span class="num" id="n1">1</span>生成密钥对</h2>
-    <p>一公一私。公钥给浏览器用，私钥以后给服务器用，别给别人看。</p>
-    <button id="gen">生成</button>
-    <div class="out" id="keys"></div>
-    <button class="copy" id="copyKeys" style="display:none">复制两把钥匙</button>
-    <div class="note" id="note1"></div>
-  </div>
+<div class="frame">
 
-  <div class="step">
-    <h2><span class="num" id="n2">2</span>订阅</h2>
-    <p>用公钥向浏览器换一个专属地址。这个地址只属于你这台手机上的这个网页。</p>
-    <button id="sub" disabled>订阅</button>
-    <div class="out" id="subOut"></div>
-    <button class="copy" id="copySub" style="display:none">复制订阅信息</button>
-    <div class="note" id="note2"></div>
-  </div>
+  <header class="mast">
+    <span class="mark">Une lettre</span>
+    <span class="today-date" id="todayDate"></span>
+  </header>
 
-  <div class="step">
-    <h2><span class="num" id="n3">3</span>存好</h2>
-    <p>把整理出来的这一段复制到记事本存着。下一步配 Cloudflare 要用。</p>
-    <button id="showAll" disabled>把要保存的东西整理出来</button>
-    <div class="out" id="allOut"></div>
-    <button class="copy" id="copyAll" style="display:none">全部复制</button>
-  </div>
+  <section class="today">
+    <div class="stamp" id="stamp"></div>
+    <div id="todayBody"></div>
+    <div class="hair"></div>
+  </section>
+
+  <section class="past">
+    <div class="past-label">往前</div>
+    <div id="pastList"><div class="none">还没有。</div></div>
+  </section>
+
+  <footer class="foot">
+    <div class="status" id="status">检查中</div>
+    <button id="enable">开启每日提醒</button>
+    <button id="test">现在试一条</button>
+    <div class="tiny" id="tiny"></div>
+  </footer>
+
 </div>
 
+<script src="./messages.js"></script>
 <script>
 const $ = id => document.getElementById(id);
 
-function b64urlToU8(s){
-  const pad = '='.repeat((4 - s.length % 4) % 4);
-  const b64 = (s + pad).replace(/-/g,'+').replace(/_/g,'/');
-  const raw = atob(b64);
-  const arr = new Uint8Array(raw.length);
-  for(let i=0;i<raw.length;i++) arr[i] = raw.charCodeAt(i);
-  return arr;
+/* ── 日期工具 ── */
+const pad = n => String(n).padStart(2,'0');
+const keyOf = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const prettyOf = s => { const [y,m,d] = s.split('-'); return `${y}.${m}.${d}`; };
+
+/* ── 挑今天这条 ──
+   规则：按日期在列表里往下走，从 START_DATE 起第 N 天用第 N 条。
+   用完了就停在最后一条之后 —— 显示兜底文案，不循环、不乱序。 */
+function pickFor(dateKey){
+  if(!window.MESSAGES || !MESSAGES.length) return null;
+
+  // 优先：这条消息自己指定了日期
+  const exact = MESSAGES.find(m => m.date === dateKey);
+  if(exact) return exact;
+
+  // 否则按天数顺序取
+  const start = new Date(window.START_DATE || MESSAGES[0].date || dateKey);
+  const today = new Date(dateKey);
+  const days = Math.floor((today - start) / 86400000);
+  const seq = MESSAGES.filter(m => !m.date);
+  if(days < 0 || days >= seq.length) return null;
+  return seq[days];
 }
-function u8ToB64url(u8){
-  let s = '';
-  for(const b of u8) s += String.fromCharCode(b);
-  return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+
+/* ── 本地存档：读过的都留着 ── */
+const STORE = 'letters.seen';
+function readSeen(){
+  try{ return JSON.parse(localStorage.getItem(STORE) || '{}'); }
+  catch(e){ return {}; }
+}
+function writeSeen(obj){
+  try{ localStorage.setItem(STORE, JSON.stringify(obj)); }catch(e){}
 }
 
-let PUB = '', PRIV = '', SUBSCRIPTION = null;
+/* ── 渲染 ── */
+function render(){
+  const now = new Date();
+  const k = keyOf(now);
 
-function showNote(el, msg, isErr){
-  el.textContent = msg;
-  el.className = 'note show' + (isErr ? ' err' : '');
-}
+  $('todayDate').textContent = prettyOf(k);
+  $('stamp').textContent = prettyOf(k);
 
-$('gen').addEventListener('click', async () => {
-  try{
-    const pair = await crypto.subtle.generateKey(
-      { name:'ECDSA', namedCurve:'P-256' }, true, ['sign','verify']
-    );
-    const rawPub = new Uint8Array(await crypto.subtle.exportKey('raw', pair.publicKey));
-    const jwkPriv = await crypto.subtle.exportKey('jwk', pair.privateKey);
+  const msg = pickFor(k);
+  const seen = readSeen();
 
-    PUB  = u8ToB64url(rawPub);
-    PRIV = jwkPriv.d;
-
-    $('keys').className = 'out show';
-    $('keys').innerHTML =
-      '<div class="label">公钥 public</div>' + PUB +
-      '<div class="label">私钥 private（保密）</div>' + PRIV;
-
-    $('n1').className = 'num done';
-    $('n1').textContent = '✓';
-    $('copyKeys').style.display = 'block';
-    $('sub').disabled = false;
-    showNote($('note1'), '生成好了。私钥别发到任何公开的地方，包括聊天记录和 GitHub。', false);
-  }catch(err){
-    showNote($('note1'), '生成失败：' + err.message, true);
+  if(msg){
+    seen[k] = msg.text;
+    writeSeen(seen);
+    $('todayBody').innerHTML = '<div class="text"></div>';
+    $('todayBody').firstChild.textContent = msg.text;
+  } else if(seen[k]){
+    $('todayBody').innerHTML = '<div class="text"></div>';
+    $('todayBody').firstChild.textContent = seen[k];
+  } else {
+    $('todayBody').innerHTML =
+      '<div class="empty">今天这里是空的。<br>不是没人来过，是还没写到这一天。</div>';
   }
-});
 
-$('sub').addEventListener('click', async () => {
+  // 往前
+  const past = Object.keys(seen).filter(d => d !== k).sort().reverse();
+  if(past.length){
+    $('pastList').innerHTML = past.map(d =>
+      `<div class="item"><div class="d">${prettyOf(d)}</div><div class="t"></div></div>`
+    ).join('');
+    document.querySelectorAll('#pastList .t').forEach((el,i) => {
+      el.textContent = seen[past[i]];
+    });
+  }
+}
+
+/* ── Service Worker + 定期唤醒 ── */
+let reg = null;
+
+async function boot(){
+  if(!('serviceWorker' in navigator)){
+    $('status').textContent = '这个浏览器不支持后台唤醒';
+    return;
+  }
+  try{
+    reg = await navigator.serviceWorker.register('./sw.js');
+    await navigator.serviceWorker.ready;
+    refreshStatus();
+  }catch(err){
+    $('status').textContent = '注册失败';
+    $('tiny').textContent = err.message;
+  }
+}
+
+async function refreshStatus(){
+  const perm = ('Notification' in window) ? Notification.permission : 'unsupported';
+  const hasPeriodic = 'periodicSync' in (reg || {});
+  let registered = false;
+
+  if(hasPeriodic){
+    try{
+      const tags = await reg.periodicSync.getTags();
+      registered = tags.includes('daily-letter');
+    }catch(e){}
+  }
+
+  let s;
+  if(perm !== 'granted')      s = '还没开启';
+  else if(!hasPeriodic)       s = '已开启 · 打开时送达';
+  else if(registered)         s = '已开启 · 后台唤醒中';
+  else                        s = '已开启 · 后台未注册';
+  $('status').textContent = s;
+
+  $('tiny').textContent = hasPeriodic
+    ? '系统决定什么时候唤醒，通常一天一次。装到桌面后更稳。'
+    : '这台设备不支持后台唤醒，所以提醒会在你打开时补上。内容一条都不会少。';
+}
+
+$('enable').addEventListener('click', async () => {
   try{
     const perm = await Notification.requestPermission();
     if(perm !== 'granted'){
-      showNote($('note2'), '通知权限没给，订阅不了。', true);
+      $('status').textContent = '通知权限没给';
       return;
     }
+    if(!reg) await boot();
 
-    const reg = await navigator.serviceWorker.register('./sw.js');
-    await navigator.serviceWorker.ready;
-
-    const old = await reg.pushManager.getSubscription();
-    if(old) await old.unsubscribe();
-
-    const sub = await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: b64urlToU8(PUB)
-    });
-
-    SUBSCRIPTION = sub.toJSON();
-
-    $('subOut').className = 'out show';
-    $('subOut').innerHTML =
-      '<div class="label">endpoint</div>' + SUBSCRIPTION.endpoint +
-      '<div class="label">p256dh</div>' + SUBSCRIPTION.keys.p256dh +
-      '<div class="label">auth</div>' + SUBSCRIPTION.keys.auth;
-
-    $('n2').className = 'num done';
-    $('n2').textContent = '✓';
-    $('copySub').style.display = 'block';
-    $('showAll').disabled = false;
-    showNote($('note2'), '成功了。endpoint 里带 fcm.googleapis.com 说明走的是安卓的推送通道，正常。', false);
+    // 定期后台唤醒
+    if('periodicSync' in reg){
+      try{
+        const st = await navigator.permissions.query({name:'periodic-background-sync'});
+        if(st.state === 'granted'){
+          await reg.periodicSync.register('daily-letter', {
+            minInterval: 12 * 60 * 60 * 1000
+          });
+        }
+      }catch(e){
+        $('tiny').textContent = '后台唤醒没注册上：' + e.message;
+      }
+    }
+    // 普通 sync 兜底：网络恢复时也检查一次
+    if('sync' in reg){
+      try{ await reg.sync.register('check-letter'); }catch(e){}
+    }
+    refreshStatus();
   }catch(err){
-    showNote($('note2'), '订阅失败：' + err.name + ' — ' + err.message, true);
+    $('status').textContent = '出错';
+    $('tiny').textContent = err.message;
   }
 });
 
-function bundle(){
-  return JSON.stringify({
-    vapidPublic: PUB,
-    vapidPrivate: PRIV,
-    subscription: SUBSCRIPTION
-  }, null, 2);
-}
+$('test').addEventListener('click', async () => {
+  const perm = await Notification.requestPermission();
+  if(perm !== 'granted'){ $('status').textContent = '通知权限没给'; return; }
+  if(!reg) await boot();
 
-$('showAll').addEventListener('click', () => {
-  $('allOut').className = 'out show';
-  $('allOut').textContent = bundle();
-  $('n3').className = 'num done';
-  $('n3').textContent = '✓';
-  $('copyAll').style.display = 'block';
+  const msg = pickFor(keyOf(new Date()));
+  await reg.showNotification('有一条', {
+    body: msg ? msg.text.slice(0, 60) : '打开看看。',
+    tag: 'letter-test',
+    badge: './icon-mono.png',
+    icon: './icon-192.png'
+  });
 });
 
-async function copy(text, btn){
-  try{
-    await navigator.clipboard.writeText(text);
-    const t = btn.textContent;
-    btn.textContent = '已复制';
-    setTimeout(()=>btn.textContent=t, 1500);
-  }catch(e){
-    alert('复制失败，长按上面的文字手动选中吧');
-  }
-}
-$('copyKeys').addEventListener('click', e => copy('public: '+PUB+'\nprivate: '+PRIV, e.target));
-$('copySub').addEventListener('click',  e => copy(JSON.stringify(SUBSCRIPTION,null,2), e.target));
-$('copyAll').addEventListener('click',  e => copy(bundle(), e.target));
+render();
+boot();
+
+// 页面回到前台时重新渲染（跨过午夜的情况）
+document.addEventListener('visibilitychange', () => {
+  if(!document.hidden) render();
+});
 </script>
+</html>
