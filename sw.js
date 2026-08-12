@@ -4,7 +4,7 @@
  * 时间一律按福州时间（UTC+8）算。
  */
 
-const CACHE = 'letters-v3';
+const CACHE = 'letters-v4';
 const ASSETS = ['./', './index.html', './manifest.json'];
 
 self.addEventListener('install', e => {
@@ -15,7 +15,7 @@ self.addEventListener('install', e => {
 self.addEventListener('activate', e => {
   e.waitUntil((async () => {
     const names = await caches.keys();
-    await Promise.all(names.filter(n => n.startsWith('letters-') && n !== CACHE && n !== 'letters-sent')
+    await Promise.all(names.filter(n => n.startsWith('letters-') && n !== CACHE && n !== 'letters-sent' && n !== 'letters-data')
                            .map(n => caches.delete(n)));
     await self.clients.claim();
   })());
@@ -60,6 +60,16 @@ function seeded(str){
 }
 
 async function loadData(){
+  // 优先用页面同步过来的那份（可能是用户导入的）
+  try{
+    const c = await caches.open('letters-data');
+    const hit = await c.match('/data/current');
+    if(hit){
+      const o = await hit.json();
+      if(o && o.M && Object.keys(o.M).length) return o;
+    }
+  }catch(e){}
+
   try{
     const res = await fetch('./messages.js?t=' + Date.now(), {cache:'no-store'});
     const txt = await res.text();
@@ -122,6 +132,18 @@ async function deliver(){
     await markSent(id);
   }
 }
+
+/* 页面把当前生效的内容同步进来 */
+self.addEventListener('message', e => {
+  if(e.data && e.data.type === 'sync-data'){
+    e.waitUntil((async () => {
+      const c = await caches.open('letters-data');
+      await c.put('/data/current', new Response(JSON.stringify({
+        M: e.data.M, S: e.data.S, D: e.data.D
+      }), { headers: {'Content-Type':'application/json'} }));
+    })());
+  }
+});
 
 self.addEventListener('periodicsync', e => {
   if(e.tag === 'daily-letter') e.waitUntil(deliver());
