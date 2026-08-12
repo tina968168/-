@@ -178,17 +178,21 @@ const parseKey = s => { const [y,m,d] = s.split('-').map(Number); return new Dat
    规则：按日期在列表里往下走，从 START_DATE 起第 N 天用第 N 条。
    用完了就停在最后一条之后 —— 显示兜底文案，不循环、不乱序。 */
 function pickFor(dateKey){
-  if(!window.MESSAGES || !MESSAGES.length) return null;
+  // 不管 messages.js 用 var / let / const 声明，这样都拿得到
+  const LIST  = (typeof MESSAGES  !== 'undefined') ? MESSAGES  : (window.MESSAGES  || []);
+  const START = (typeof START_DATE !== 'undefined') ? START_DATE : (window.START_DATE || dateKey);
+
+  if(!LIST.length) return null;
 
   // 优先：这条消息自己指定了日期
-  const exact = MESSAGES.find(m => m.date === dateKey);
+  const exact = LIST.find(m => m.date === dateKey);
   if(exact) return exact;
 
   // 否则按天数顺序取
-  const start = parseKey(window.START_DATE || dateKey);
+  const start = parseKey(START);
   const today = parseKey(dateKey);
   const days = Math.round((today - start) / 86400000);
-  const seq = MESSAGES.filter(m => !m.date);
+  const seq = LIST.filter(m => !m.date);
   if(days < 0 || days >= seq.length) return null;
   return seq[days];
 }
