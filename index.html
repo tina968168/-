@@ -232,21 +232,29 @@
   /* ── 抽屉：跟外面同一片天 ── */
   .sheet{
     position:fixed; inset:0; z-index:20;
-    background:rgba(2,5,10,.8);
-    backdrop-filter:blur(7px); -webkit-backdrop-filter:blur(7px);
+    background:rgba(2,5,10,.86);
     display:flex; align-items:flex-end; justify-content:center;
-    opacity:0; pointer-events:none; transition:opacity .35s ease;
+    opacity:0; visibility:hidden; pointer-events:none;
+    transition:opacity .32s ease, visibility 0s linear .32s;
+    /* 提前把它交给合成层，别在打开那一刻才算 */
+    will-change:opacity;
+    transform:translateZ(0);
   }
-  .sheet.open{opacity:1; pointer-events:auto}
+  .sheet.open{
+    opacity:1; visibility:visible; pointer-events:auto;
+    transition:opacity .32s ease, visibility 0s;
+  }
   .panel{
     position:relative; width:100%; max-width:440px;
-    background:linear-gradient(168deg, rgba(13,40,62,.94), rgba(5,10,18,.97));
+    background:linear-gradient(168deg, rgba(15,44,68,.985), rgba(7,14,24,.995));
     border-top:1px solid rgba(147,162,178,.22);
     padding:26px 26px calc(30px + env(safe-area-inset-bottom));
-    transform:translateY(16px); transition:transform .35s cubic-bezier(.2,.8,.25,1);
+    transform:translate3d(0,18px,0);
+    transition:transform .34s cubic-bezier(.2,.8,.25,1);
     max-height:88vh; overflow-y:auto;
+    will-change:transform;
   }
-  .sheet.open .panel{transform:none}
+  .sheet.open .panel{transform:translate3d(0,0,0)}
   /* 抽屉自己的几颗星 */
   .panel .dust{position:absolute; inset:0; pointer-events:none; overflow:hidden}
   .panel .dust i{position:absolute; border-radius:50%; background:var(--star)}
@@ -496,7 +504,9 @@ var pastExpanded = false;
 function syncToSW(){
   if(!navigator.serviceWorker || !navigator.serviceWorker.controller) return;
   const {M, S, D} = readGlobals();
-  navigator.serviceWorker.controller.postMessage({ type:'sync-data', M, S, D });
+  let notified = [];
+  try{ notified = Object.keys(JSON.parse(localStorage.getItem('letters.notified') || '{}')); }catch(e){}
+  navigator.serviceWorker.controller.postMessage({ type:'sync-data', M, S, D, notified });
 }
 
 function render(){
@@ -747,7 +757,8 @@ function scheduleToday(){
     const delay = targetMs - nowMs;
 
     if(delay <= 0){
-      // 已经过了：如果还没通知过，立刻补一条
+      // 已经过时但还没通知过的：补一条。
+      // 这是有意的 —— 补上来的那一条，本身就是"有人惦记着"的证据。
       popNow(p, dateKey);
     } else if(delay < 12 * 3600000){
       timers.push(setTimeout(() => {
